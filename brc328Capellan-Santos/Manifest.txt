@@ -1,0 +1,2 @@
+Main-class: Transcript
+Class-Path: ojdbc11.jar
