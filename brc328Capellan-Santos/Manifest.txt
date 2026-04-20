@@ -1,2 +1,3 @@
-Main-class: Transcript
+Main-Class: RestaurantApp
 Class-Path: ojdbc11.jar
+
