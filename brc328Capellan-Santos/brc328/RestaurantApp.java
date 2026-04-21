@@ -28,6 +28,7 @@ public class RestaurantApp {
         }
 
         try (Connection c = conn) {
+            c.setAutoCommit(false);
             runApp(c);
         } catch (SQLException se) {
             System.err.println(se.getMessage());
@@ -68,7 +69,7 @@ public class RestaurantApp {
     }
 
     // ----------------------------------------------------------------
-    // Shared I/O helpers � used by all UI classes
+    // Shared I/O helpers — used by all UI classes
     // ----------------------------------------------------------------
 
     static String readLine(String prompt) {

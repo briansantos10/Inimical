@@ -223,12 +223,11 @@ public class CustomerUI {
             boolean any = false;
             while (rs.next()) {
                 any = true;
-                System.out.printf("  %-6d %-25s %s %s, %s%n",
+                System.out.printf("  %-6d %-25s %s %s%n",
                     rs.getInt("loc_id"),
                     rs.getString("city") + ", " + rs.getString("state"),
                     rs.getString("st_num"),
-                    rs.getString("stname"),
-                    rs.getString("state"));
+                    rs.getString("stname"));
             }
 
             if (!any) {
@@ -468,28 +467,6 @@ public class CustomerUI {
             return;
         }
 
-        // Order type
-        String ordType = null;
-        while (ordType == null) {
-            String typeInput = RestaurantApp.readLine("Order type - (1) Online  (2) In-person: ");
-            if (typeInput == null) continue;
-            switch (typeInput.trim()) {
-                case "1": ordType = "O"; break;
-                case "2": ordType = "I"; break;
-                default: System.out.println("Please enter 1 or 2.");
-            }
-        }
-
-        // Pickup time for online orders
-        Timestamp pickupTime = null;
-        if (ordType.equals("O")) {
-            pickupTime = promptPickupTime();
-            if (pickupTime == null) {
-                System.out.println("Order cancelled.");
-                return;
-            }
-        }
-
         // Payment
         String ccNum = handlePayment(conn, session);
         if (ccNum == null) {
@@ -502,19 +479,16 @@ public class CustomerUI {
 
         String insertOrder =
             "INSERT INTO Orders (ord_id, placed, pickup, ordtyp, status, acc_id, loc_id, cc_num) " +
-            "VALUES (ord_seq.NEXTVAL, ?, ?, ?, 'pending', ?, ?, ?)";
+            "VALUES (ord_seq.NEXTVAL, ?, NULL, 'I', 'pending', ?, ?, ?)";
 
         int newOrdId = -1;
         try (PreparedStatement ps = conn.prepareStatement(insertOrder,
                 new String[]{"ord_id"})) {
             ps.setTimestamp(1, now);
-            if (pickupTime != null) ps.setTimestamp(2, pickupTime);
-            else                    ps.setNull(2, Types.TIMESTAMP);
-            ps.setString(3, ordType);
-            if (session.isLoggedIn()) ps.setInt(4, session.accountId);
-            else                      ps.setNull(4, Types.INTEGER);
-            ps.setInt(5, session.locId);
-            ps.setString(6, ccNum);
+            if (session.isLoggedIn()) ps.setInt(2, session.accountId);
+            else                      ps.setNull(2, Types.INTEGER);
+            ps.setInt(3, session.locId);
+            ps.setString(4, ccNum);
             ps.executeUpdate();
 
             ResultSet keys = ps.getGeneratedKeys();
@@ -542,44 +516,18 @@ public class CustomerUI {
             ps.executeBatch();
         }
 
-        // In-person orders complete immediately (triggers loyalty points)
-        if (ordType.equals("I")) {
-            String complete = "UPDATE Orders SET status = 'completed' WHERE ord_id = ?";
-            try (PreparedStatement ps = conn.prepareStatement(complete)) {
-                ps.setInt(1, newOrdId);
-                ps.executeUpdate();
-            }
+        // Mark order completed immediately — triggers loyalty points for logged-in users
+        String complete = "UPDATE Orders SET status = 'completed' WHERE ord_id = ?";
+        try (PreparedStatement ps = conn.prepareStatement(complete)) {
+            ps.setInt(1, newOrdId);
+            ps.executeUpdate();
         }
 
         conn.commit();
 
         // Receipt
-        printReceipt(newOrdId, session, ordType, pickupTime, subtotal, tax, total, ccNum);
+        printReceipt(newOrdId, session, subtotal, tax, total, ccNum);
         session.clearCart();
-    }
-
-    // ----------------------------------------------------------------
-    // Prompt for pickup time
-    // ----------------------------------------------------------------
-    static Timestamp promptPickupTime() {
-        System.out.println("Enter pickup time (YYYY-MM-DD HH:MM), e.g. 2026-04-22 14:30:");
-        while (true) {
-            String input = RestaurantApp.readLine("Pickup time: ");
-            if (input == null || input.trim().equalsIgnoreCase("back")) return null;
-
-            try {
-                // Parse input into a timestamp
-                String normalized = input.trim() + ":00";
-                Timestamp ts = Timestamp.valueOf(normalized.replace(" ", " ").replace("-", "-"));
-                if (ts.before(new Timestamp(System.currentTimeMillis()))) {
-                    System.out.println("Pickup time must be in the future. Try again.");
-                    continue;
-                }
-                return ts;
-            } catch (IllegalArgumentException e) {
-                System.out.println("Invalid format. Use YYYY-MM-DD HH:MM");
-            }
-        }
     }
 
     // ----------------------------------------------------------------
@@ -638,14 +586,19 @@ public class CustomerUI {
     // ----------------------------------------------------------------
     static String enterNewCard(Connection conn, Session session) throws SQLException {
         System.out.println("\n--- Enter Card Details ---");
+        System.out.println("  Format: xxxx-xxxx-xxxx-xxxx  or  xxxxxxxxxxxxxxxx");
 
-        String ccNum = RestaurantApp.readLine("Card number (16 digits): ");
-        if (ccNum == null || ccNum.trim().isEmpty()) return null;
-        ccNum = ccNum.trim();
-
-        if (ccNum.length() > 16) {
-            System.out.println("Card number too long.");
-            return null;
+        // Card number with reprompt
+        String ccNum = null;
+        while (ccNum == null) {
+            String input = RestaurantApp.readLine("Card number: ");
+            if (input == null || input.trim().isEmpty()) return null;
+            String stripped = input.trim().replaceAll("[\\s\\-]", "");
+            if (stripped.length() != 16 || !stripped.matches("\\d+")) {
+                System.out.println("Invalid card number. Must be 16 digits.");
+                continue;
+            }
+            ccNum = stripped;
         }
 
         // Check if card already exists
@@ -659,9 +612,18 @@ public class CustomerUI {
             }
         }
 
-        String expiry = RestaurantApp.readLine("Expiry (MM/YY): ");
-        if (expiry == null || expiry.trim().isEmpty()) return null;
-        expiry = expiry.trim();
+        // Expiry with reprompt
+        String expiry = null;
+        while (expiry == null) {
+            String input = RestaurantApp.readLine("Expiry (MM/YY): ");
+            if (input == null || input.trim().isEmpty()) return null;
+            input = input.trim();
+            if (!input.matches("(0[1-9]|1[0-2])/\\d{2}")) {
+                System.out.println("Invalid format. Use MM/YY (e.g. 05/28).");
+                continue;
+            }
+            expiry = input;
+        }
 
         // Save to account or one-time
         Integer accId = null;
@@ -761,18 +723,13 @@ public class CustomerUI {
     // ----------------------------------------------------------------
     // Print receipt
     // ----------------------------------------------------------------
-    static void printReceipt(int ordId, Session session, String ordType,
-                              Timestamp pickupTime, double subtotal,
-                              double tax, double total, String ccNum) {
+    static void printReceipt(int ordId, Session session,
+                              double subtotal, double tax, double total, String ccNum) {
         System.out.println("\n=============================");
         System.out.println("       ORDER CONFIRMED");
         System.out.println("=============================");
         System.out.println("  Order #:   " + ordId);
         System.out.println("  Location:  " + session.locCity);
-        System.out.println("  Type:      " + (ordType.equals("O") ? "Online" : "In-person"));
-        if (pickupTime != null) {
-            System.out.println("  Pickup:    " + pickupTime.toString().substring(0, 16));
-        }
         System.out.println("  Card:      **** **** **** " + ccNum.substring(Math.max(0, ccNum.length() - 4)));
         RestaurantApp.divider();
         System.out.printf("  %-30s $%.2f%n", "Subtotal:", subtotal);
