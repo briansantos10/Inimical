@@ -53,10 +53,10 @@ public class RestaurantApp {
                     CustomerUI.run(conn);
                     break;
                 case "2":
-                    ManagementUI.run(conn);
+                    // ManagementUI.run(conn);
                     break;
                 case "3":
-                    LocationManagerUI.run(conn);
+                    // LocationManagerUI.run(conn);
                     break;
                 case "4":
                     System.out.println("Goodbye!");
@@ -68,7 +68,7 @@ public class RestaurantApp {
     }
 
     // ----------------------------------------------------------------
-    // Shared I/O helpers ¿ used by all UI classes
+    // Shared I/O helpers ï¿½ used by all UI classes
     // ----------------------------------------------------------------
 
     static String readLine(String prompt) {
