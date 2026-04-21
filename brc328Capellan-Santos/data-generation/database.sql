@@ -11,6 +11,17 @@ DROP TABLE InvItm CASCADE CONSTRAINTS;
 DROP TABLE Acct CASCADE CONSTRAINTS;
 DROP TABLE Loc CASCADE CONSTRAINTS;
 
+-- Drop sequences if they exist
+DROP SEQUENCE acct_seq;
+DROP SEQUENCE item_seq;
+DROP SEQUENCE ord_seq;
+
+-- Sequences for ID generation
+CREATE SEQUENCE acct_seq START WITH 200  INCREMENT BY 1;
+CREATE SEQUENCE item_seq START WITH 3000 INCREMENT BY 1;
+CREATE SEQUENCE ord_seq  START WITH 20000 INCREMENT BY 1;
+
+
 -- ============================================
 -- ENTITY TABLES
 -- ============================================
