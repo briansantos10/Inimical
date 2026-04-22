@@ -11,6 +11,7 @@ public class CustomerUI {
         Session session = new Session();
 
         while (true) {
+            RestaurantApp.clearScreen();
             System.out.println("\n=============================");
             System.out.println("  Welcome to Inimical's");
             System.out.println("=============================");
@@ -153,8 +154,20 @@ public class CustomerUI {
     // ----------------------------------------------------------------
     static void customerHome(Connection conn, Session session) throws SQLException {
         while (true) {
+            RestaurantApp.clearScreen();
+
+            // Fetch current points
+            int points = 0;
+            String ptsSql = "SELECT points FROM Acct WHERE acc_id = ?";
+            try (PreparedStatement ps = conn.prepareStatement(ptsSql)) {
+                ps.setInt(1, session.accountId);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) points = rs.getInt("points");
+            }
+
             System.out.println("\n=============================");
             System.out.println("  Hello, " + session.firstName + "!");
+            System.out.println("  Points: " + points);
             System.out.println("=============================");
             System.out.println("  1. Place Order");
             System.out.println("  2. Order History");
@@ -211,6 +224,7 @@ public class CustomerUI {
     // Select Location
     // ----------------------------------------------------------------
     static boolean selectLocation(Connection conn, Session session) throws SQLException {
+        RestaurantApp.clearScreen();
         System.out.println("\n--- Select a Location ---");
 
         String sql = "SELECT loc_id, city, state, stname, st_num FROM Loc ORDER BY loc_id";
@@ -261,6 +275,7 @@ public class CustomerUI {
     // ----------------------------------------------------------------
     static void browseItems(Connection conn, Session session) throws SQLException {
         while (true) {
+            RestaurantApp.clearScreen();
             System.out.println("\n--- Menu ---");
             System.out.println("  1. View All Items");
             System.out.println("  2. Filter by Meal Type");
@@ -275,6 +290,7 @@ public class CustomerUI {
 
             switch (choice.trim().toUpperCase()) {
                 case "1":
+                    RestaurantApp.clearScreen();
                     displayItems(conn, session, null, false);
                     promptAddToCart(conn, session);
                     break;
@@ -283,6 +299,7 @@ public class CustomerUI {
                     break;
                 case "3":
                     if (session.isLoggedIn()) {
+                        RestaurantApp.clearScreen();
                         displayItems(conn, session, null, true);
                         promptAddToCart(conn, session);
                     } else {
@@ -290,8 +307,10 @@ public class CustomerUI {
                     }
                     break;
                 case "V":
+                    RestaurantApp.clearScreen();
                     System.out.println("\n--- Your Cart ---");
                     session.printCart();
+                    RestaurantApp.readLine("\nPress Enter to continue...");
                     break;
                 case "D":
                     return;
@@ -528,6 +547,8 @@ public class CustomerUI {
         // Receipt
         printReceipt(newOrdId, session, subtotal, tax, total, ccNum);
         session.clearCart();
+
+        RestaurantApp.readLine("\nPress Enter to continue...");
     }
 
     // ----------------------------------------------------------------
@@ -601,13 +622,12 @@ public class CustomerUI {
             ccNum = stripped;
         }
 
-        // Check if card already exists
+        // Check if card already exists — silently reuse if so
         String checkSql = "SELECT cc_num FROM CCard WHERE cc_num = ?";
         try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
             ps.setString(1, ccNum);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                System.out.println("Card already on file. Using existing card.");
                 return ccNum;
             }
         }
@@ -914,19 +934,85 @@ public class CustomerUI {
     // Build Custom Item
     // ----------------------------------------------------------------
     static void buildCustomItem(Connection conn, Session session) throws SQLException {
+        RestaurantApp.clearScreen();
         System.out.println("\n--- Build Custom Item ---");
 
-        String name = RestaurantApp.readLine("Item name: ");
-        if (name == null || name.trim().isEmpty()) return;
+        // Show user's own custom items first
+        String myItemsSql =
+            "SELECT itmid, name, crdate FROM MItem WHERE cr_acc = ? ORDER BY crdate DESC";
+        try (PreparedStatement ps = conn.prepareStatement(myItemsSql)) {
+            ps.setInt(1, session.accountId);
+            ResultSet rs = ps.executeQuery();
 
-        // Insert the custom item
+            boolean hasOwn = false;
+            while (rs.next()) {
+                if (!hasOwn) {
+                    System.out.println("  Your Custom Items:");
+                    System.out.printf("  %-6s %-35s %s%n", "ID", "Name", "Created");
+                    RestaurantApp.divider();
+                    hasOwn = true;
+                }
+                System.out.printf("  %-6d %-35s %s%n",
+                    rs.getInt("itmid"),
+                    rs.getString("name"),
+                    rs.getDate("crdate").toString());
+            }
+            if (!hasOwn) System.out.println("  You have not created any custom items yet.");
+        }
+
+        // Show all other custom items
+        System.out.println("\n  All Custom Items:");
+        String allSql =
+            "SELECT m.itmid, m.name, a.f_name, a.l_name FROM MItem m " +
+            "LEFT JOIN Acct a ON m.cr_acc = a.acc_id " +
+            "WHERE m.itmtyp = 'C' AND m.cr_acc != ? ORDER BY m.itmid";
+        try (PreparedStatement ps = conn.prepareStatement(allSql)) {
+            ps.setInt(1, session.accountId);
+            ResultSet rs = ps.executeQuery();
+
+            System.out.printf("  %-6s %-35s %s%n", "ID", "Name", "Created by");
+            RestaurantApp.divider();
+
+            boolean any = false;
+            while (rs.next()) {
+                any = true;
+                String creator = rs.getString("f_name") != null
+                    ? rs.getString("f_name") + " " + rs.getString("l_name")
+                    : "unknown";
+                System.out.printf("  %-6d %-35s %s%n",
+                    rs.getInt("itmid"), rs.getString("name"), creator);
+            }
+            if (!any) System.out.println("  No other custom items exist.");
+        }
+
+        System.out.println();
+        // Name input with duplicate check
+        String name = null;
+        while (name == null) {
+            String input = RestaurantApp.readLine("New item name (or press Enter to cancel): ");
+            if (input == null || input.trim().isEmpty()) return;
+            input = input.trim();
+
+            String dupeSql = "SELECT itmid FROM MItem WHERE LOWER(name) = LOWER(?)";
+            try (PreparedStatement ps = conn.prepareStatement(dupeSql)) {
+                ps.setString(1, input);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()) {
+                    System.out.println("An item with that name already exists. Choose a different name.");
+                    continue;
+                }
+            }
+            name = input;
+        }
+
+        // Insert the custom item shell first so we have an ID for components
         String insertSql =
             "INSERT INTO MItem (itmid, name, itmtyp, nat_pr, cr_acc, crdate) " +
             "VALUES (item_seq.NEXTVAL, ?, 'C', NULL, ?, SYSDATE)";
 
         int newItemId = -1;
         try (PreparedStatement ps = conn.prepareStatement(insertSql, new String[]{"itmid"})) {
-            ps.setString(1, name.trim());
+            ps.setString(1, name);
             ps.setInt(2, session.accountId);
             ps.executeUpdate();
 
@@ -944,27 +1030,35 @@ public class CustomerUI {
 
         if (newItemId == -1) {
             System.out.println("Failed to create item.");
+            conn.rollback();
             return;
         }
 
-        // Add inventory components
-        addInventoryComponents(conn, newItemId);
+        // Add components — track totals to enforce minimum
+        int invCount  = addInventoryComponents(conn, newItemId);
+        int contCount = addContainedItems(conn, newItemId);
 
-        // Add contained menu items
-        addContainedItems(conn, newItemId);
+        // Require at least one component of either type
+        if (invCount + contCount == 0) {
+            System.out.println("\nItem must have at least one ingredient or contained item. Cancelling.");
+            conn.rollback();
+            return;
+        }
 
         conn.commit();
-
-        // Summary card
-        printCustomItemSummary(conn, newItemId, name.trim(), session);
+        printCustomItemSummary(conn, newItemId, name, session);
     }
 
     // ----------------------------------------------------------------
-    // Add inventory components to a custom item
+    // Add inventory components — returns count of items added
     // ----------------------------------------------------------------
-    static void addInventoryComponents(Connection conn, int itemId) throws SQLException {
+    static int addInventoryComponents(Connection conn, int itemId) throws SQLException {
         System.out.println("\n--- Add Inventory Components ---");
         System.out.println("Available inventory items:");
+
+        // Build a map of inv_id -> unit for inline prompting
+        java.util.Map<Integer, String> unitMap = new java.util.LinkedHashMap<>();
+        java.util.Map<Integer, String> nameMap = new java.util.LinkedHashMap<>();
 
         String listSql = "SELECT inv_id, name, unit FROM InvItm ORDER BY inv_id";
         try (PreparedStatement ps = conn.prepareStatement(listSql)) {
@@ -972,59 +1066,94 @@ public class CustomerUI {
             System.out.printf("  %-6s %-30s %s%n", "ID", "Name", "Unit");
             RestaurantApp.divider();
             while (rs.next()) {
-                System.out.printf("  %-6d %-30s %s%n",
-                    rs.getInt("inv_id"), rs.getString("name"), rs.getString("unit"));
+                int id     = rs.getInt("inv_id");
+                String nm  = rs.getString("name");
+                String ut  = rs.getString("unit");
+                unitMap.put(id, ut);
+                nameMap.put(id, nm);
+                System.out.printf("  %-6d %-30s %s%n", id, nm, ut);
             }
         }
 
-        System.out.println("\nEnter ingredient ID and quantity (e.g. 1 2.5), or press Enter to skip:");
+        System.out.println("\nEnter ingredient ID, then you will be prompted for quantity.");
+        System.out.println("Press Enter with no input when done.");
+
         String insertSql = "INSERT INTO MIComp (itmid, inv_id, qty) VALUES (?, ?, ?)";
+        int added = 0;
 
         try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
             while (true) {
-                String input = RestaurantApp.readLine("> ");
-                if (input == null || input.trim().isEmpty()) break;
+                String idInput = RestaurantApp.readLine("Ingredient ID (or Enter to finish): ");
+                if (idInput == null || idInput.trim().isEmpty()) break;
 
-                String[] parts = input.trim().split("\\s+");
-                if (parts.length != 2) {
-                    System.out.println("Format: <inv_id> <quantity>");
+                int invId;
+                try {
+                    invId = Integer.parseInt(idInput.trim());
+                } catch (NumberFormatException e) {
+                    System.out.println("Invalid ID.");
                     continue;
                 }
 
-                try {
-                    int    invId = Integer.parseInt(parts[0]);
-                    double qty   = Double.parseDouble(parts[1]);
+                if (!unitMap.containsKey(invId)) {
+                    System.out.println("Inventory item not found.");
+                    continue;
+                }
 
-                    // Verify inv_id exists
-                    String checkSql = "SELECT inv_id FROM InvItm WHERE inv_id = ?";
-                    try (PreparedStatement check = conn.prepareStatement(checkSql)) {
-                        check.setInt(1, invId);
-                        ResultSet rs = check.executeQuery();
-                        if (!rs.next()) {
-                            System.out.println("Inventory item not found.");
-                            continue;
+                String unit      = unitMap.get(invId);
+                String itemName  = nameMap.get(invId);
+                boolean countable = unit.equals("piece") || unit.equals("slice") ||
+                                    unit.equals("strip") || unit.equals("leaf") ||
+                                    unit.equals("scoop");
+
+                double qty = -1;
+                while (qty < 0) {
+                    String qtyPrompt = countable
+                        ? "How many " + unit + "s of " + itemName + "? "
+                        : "How many " + unit + " of " + itemName + "? ";
+                    String qtyInput = RestaurantApp.readLine(qtyPrompt);
+                    if (qtyInput == null || qtyInput.trim().isEmpty()) break;
+
+                    try {
+                        if (countable) {
+                            int whole = Integer.parseInt(qtyInput.trim());
+                            if (whole <= 0) { System.out.println("Must be at least 1."); continue; }
+                            qty = whole;
+                        } else {
+                            double d = Double.parseDouble(qtyInput.trim());
+                            if (d <= 0) { System.out.println("Must be greater than 0."); continue; }
+                            qty = d;
                         }
+                    } catch (NumberFormatException e) {
+                        System.out.println(countable ? "Please enter a whole number." : "Please enter a number.");
                     }
+                }
 
+                if (qty < 0) continue; // user pressed Enter to skip qty
+
+                try {
                     ps.setInt(1, itemId);
                     ps.setInt(2, invId);
                     ps.setDouble(3, qty);
                     ps.executeUpdate();
-                    System.out.println("Added. Continue or press Enter when done.");
-
-                } catch (NumberFormatException e) {
-                    System.out.println("Please enter valid numbers.");
+                    added++;
+                    System.out.println("  Added " + itemName + ".");
                 } catch (SQLException se) {
-                    System.out.println("Could not add ingredient: " + se.getMessage());
+                    if (se.getErrorCode() == 1) { // ORA-00001: unique constraint violated
+                        System.out.println("  You already added " + itemName + ". Skipping.");
+                    } else {
+                        RestaurantApp.logError("addInventoryComponents", se);
+                        System.out.println("  Could not add ingredient. Please try again.");
+                    }
                 }
             }
         }
+        return added;
     }
 
     // ----------------------------------------------------------------
-    // Add contained menu items to a custom item
+    // Add contained menu items — returns count of items added
     // ----------------------------------------------------------------
-    static void addContainedItems(Connection conn, int itemId) throws SQLException {
+    static int addContainedItems(Connection conn, int itemId) throws SQLException {
         System.out.println("\n--- Add Contained Menu Items ---");
         System.out.println("You can include existing standard or custom menu items.");
 
@@ -1042,6 +1171,7 @@ public class CustomerUI {
 
         System.out.println("\nEnter item ID and quantity (e.g. 1001 1), or press Enter to skip:");
         String insertSql = "INSERT INTO MICont (contid, compid, qty) VALUES (?, ?, ?)";
+        int added = 0;
 
         try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
             while (true) {
@@ -1063,6 +1193,11 @@ public class CustomerUI {
                         continue;
                     }
 
+                    if (qty <= 0) {
+                        System.out.println("Quantity must be at least 1.");
+                        continue;
+                    }
+
                     String checkSql = "SELECT itmid FROM MItem WHERE itmid = ?";
                     try (PreparedStatement check = conn.prepareStatement(checkSql)) {
                         check.setInt(1, childId);
@@ -1077,15 +1212,22 @@ public class CustomerUI {
                     ps.setInt(2, childId);
                     ps.setInt(3, qty);
                     ps.executeUpdate();
-                    System.out.println("Added. Continue or press Enter when done.");
+                    added++;
+                    System.out.println("  Added. Continue or press Enter when done.");
 
                 } catch (NumberFormatException e) {
                     System.out.println("Please enter valid numbers.");
                 } catch (SQLException se) {
-                    System.out.println("Could not add item: " + se.getMessage());
+                    if (se.getErrorCode() == 1) {
+                        System.out.println("  That item is already included. Skipping.");
+                    } else {
+                        RestaurantApp.logError("addContainedItems", se);
+                        System.out.println("  Could not add item. Please try again.");
+                    }
                 }
             }
         }
+        return added;
     }
 
     // ----------------------------------------------------------------

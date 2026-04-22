@@ -31,13 +31,14 @@ public class RestaurantApp {
             c.setAutoCommit(false);
             runApp(c);
         } catch (SQLException se) {
-            System.err.println(se.getMessage());
-            se.printStackTrace();
+            logError("top-level", se);
+            System.err.println("An unexpected error occurred. Please restart the application.");
         }
     }
 
     static void runApp(Connection conn) throws SQLException {
         while (true) {
+            RestaurantApp.clearScreen();
             System.out.println("\n=============================");
             System.out.println("  Inimical's Restaurant");
             System.out.println("=============================");
@@ -124,5 +125,21 @@ public class RestaurantApp {
     // Prints a simple divider line
     static void divider() {
         System.out.println("-----------------------------");
+    }
+
+    // Clears the terminal screen using ANSI escape codes
+    static void clearScreen() {
+        System.out.print("\033[H\033[2J");
+        System.out.flush();
+    }
+
+    // Logs an error to error.log without showing it to the user
+    static void logError(String context, Exception e) {
+        try (java.io.FileWriter fw = new java.io.FileWriter("error.log", true);
+             java.io.PrintWriter pw = new java.io.PrintWriter(fw)) {
+            pw.println("[" + new java.util.Date() + "] " + context);
+            e.printStackTrace(pw);
+            pw.println();
+        } catch (java.io.IOException ignored) {}
     }
 }
