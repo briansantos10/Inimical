@@ -1,7 +1,5 @@
-Homework 4 - JDBC *and a bit of SQL
-Student: Brian Capellan-Santos
-
-Contents:
-- Transcript.jar: executable, run with "java -jar brc328.jar"
-- Transcript/Transcript.java: Java source code
-- "jar cfmv brc328.jar Manifest.txt -C brc328 ." to compile
+// NOTES: 
+Orders.status column — currently always 'completed', could be dropped or kept as a stub for future work
+Orders.pickup column — always NULL, could be dropped since you're scrapping pickup time
+Orders.ordtyp column — currently always 'I', keep it since you may still want the online/in-person distinction even without pickup time (it's still meaningful information about how the order was placed)
+The check_order_pickup_time trigger — currently a no-op since you never insert ordtyp = 'O', but harmless to leave

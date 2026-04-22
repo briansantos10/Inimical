@@ -2,7 +2,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Session {
-
     // Account info — null if guest
     Integer accountId;
     String firstName;
@@ -11,6 +10,10 @@ public class Session {
     // Currently selected location
     Integer locId;
     String locCity;
+
+    // Order type for current order: 'I' = in-person, 'O' = online
+    // Defaults to in-person; set at the start of placeOrder()
+    char ordTyp = 'I';
 
     // Shopping cart
     List<CartItem> cart;
@@ -21,6 +24,7 @@ public class Session {
         this.lastName  = null;
         this.locId     = null;
         this.locCity   = null;
+        this.ordTyp    = 'I';
         this.cart      = new ArrayList<>();
     }
 
@@ -40,6 +44,7 @@ public class Session {
         accountId = null;
         firstName = null;
         lastName  = null;
+        ordTyp    = 'I';
         cart.clear();
         // Keep location — they may want to place another order
     }
