@@ -221,11 +221,8 @@ public class CustomerUI {
 
         if (!selectLocation(conn, session)) return;
         browseItems(conn, session);
-        if (!session.cartIsEmpty()) {
-            checkout(conn, session);
-        } else {
-            System.out.println("No items in cart. Returning.");
-        }
+        // checkout is now triggered from within browseItems via the Checkout option
+        // cart is cleared by checkout on success, or by user choosing Cancel Order
     }
 
     // ----------------------------------------------------------------
@@ -291,7 +288,8 @@ public class CustomerUI {
                 System.out.println("  3. View Custom Items");
             }
             System.out.println("  V. View / Manage Cart");
-            System.out.println("  D. Done Browsing");
+            System.out.println("  C. Checkout");
+            System.out.println("  X. Cancel Order");
 
             String choice = RestaurantApp.readLine("Select: ");
             if (choice == null) continue;
@@ -317,12 +315,29 @@ public class CustomerUI {
                 case "V":
                     manageCart(conn, session);
                     break;
-                case "D":
+                case "C":
                     if (session.cartIsEmpty()) {
-                        System.out.println("\nNo items in cart. Heading back.");
+                        System.out.println("\nNo items in cart. Add something first.");
                         RestaurantApp.readLine("Press Enter to continue...");
+                        break;
                     }
-                    return;
+                    checkout(conn, session);
+                    if (session.cartIsEmpty()) return; // order committed -- go home
+                    break; // cancelled at confirm/payment -- stay in browse
+                case "X":
+                    if (session.cartIsEmpty()) {
+                        System.out.println("\nNo active order to cancel. Heading back.");
+                        RestaurantApp.readLine("Press Enter to continue...");
+                        return;
+                    }
+                    String xConfirm = RestaurantApp.readLine("Cancel order and clear cart? (y/n): ");
+                    if (xConfirm != null && xConfirm.trim().equalsIgnoreCase("y")) {
+                        session.clearCart();
+                        System.out.println("Order cancelled. Cart cleared.");
+                        RestaurantApp.readLine("Press Enter to continue...");
+                        return;
+                    }
+                    break; // user said n -- stay in browse
                 default:
                     System.out.println("Invalid option.");
             }
