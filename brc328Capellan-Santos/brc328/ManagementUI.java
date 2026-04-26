@@ -23,9 +23,9 @@ public class ManagementUI {
             if (choice == null) continue;
 
             switch (choice.trim()) {
-                case "1": salesReport(conn);          break;
-                case "2": topSellingItems(conn);      break;
-                case "3": customerActivity(conn);     break;
+                case "1": salesReport(conn);      break;
+                case "2": topSellingItems(conn);  break;
+                case "3": customerActivity(conn); break;
                 case "4": return;
                 default:  System.out.println("Invalid option.");
             }
@@ -44,13 +44,12 @@ public class ManagementUI {
         start = (start == null || start.trim().isEmpty()) ? null : start.trim();
         end   = (end   == null || end.trim().isEmpty())   ? null : end.trim();
 
-        // Basic format validation — warn but don't block
         if (start != null && !start.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            System.out.println("  Warning: start date format not recognised — ignoring.");
+            System.out.println("  Warning: start date format not recognised -- ignoring.");
             start = null;
         }
         if (end != null && !end.matches("\\d{4}-\\d{2}-\\d{2}")) {
-            System.out.println("  Warning: end date format not recognised — ignoring.");
+            System.out.println("  Warning: end date format not recognised -- ignoring.");
             end = null;
         }
 
@@ -58,9 +57,28 @@ public class ManagementUI {
     }
 
     // ----------------------------------------------------------------
-    // Build the WHERE clause fragment for a date range on Orders.placed
+    // Build a date range fragment for use inside a JOIN ON clause.
+    // Used for LEFT JOINs where a WHERE clause would incorrectly
+    // eliminate rows with no matching orders (e.g. locations with
+    // zero orders, accounts with zero orders in the date range).
     // ----------------------------------------------------------------
-    static String dateClause(String start, String end, boolean hasWhere) {
+    static String dateJoinClause(String start, String end) {
+        StringBuilder sb = new StringBuilder();
+        if (start != null) {
+            sb.append(" AND o.placed >= TO_TIMESTAMP(?, 'YYYY-MM-DD')");
+        }
+        if (end != null) {
+            sb.append(" AND o.placed < TO_TIMESTAMP(?, 'YYYY-MM-DD') + INTERVAL '1' DAY");
+        }
+        return sb.toString();
+    }
+
+    // ----------------------------------------------------------------
+    // Build a WHERE clause fragment for date range on Orders.placed.
+    // Used for INNER JOINs where excluding non-matching rows is correct
+    // (e.g. Top-Selling Items only cares about items that were ordered).
+    // ----------------------------------------------------------------
+    static String dateWhereClause(String start, String end, boolean hasWhere) {
         StringBuilder sb = new StringBuilder();
         if (start != null) {
             sb.append(hasWhere ? " AND " : " WHERE ");
@@ -84,17 +102,19 @@ public class ManagementUI {
         String[] range = promptDateRange();
         String start = range[0], end = range[1];
 
-        // Build query: per-location revenue, order count, avg order value
-        // Revenue = sum of (COALESCE(loc_pr, nat_pr) * qty) per order item
+        // Revenue uses get_item_price() PL/SQL function to correctly handle
+        // custom item pricing (recursive component sum) alongside standard items.
+        // Date filter goes in the JOIN ON clause so locations with no orders
+        // in the date range still appear with ord_count=0 rather than disappearing.
         StringBuilder sql = new StringBuilder(
             "SELECT l.loc_id, l.city, l.state, " +
             "COUNT(DISTINCT o.ord_id) AS ord_count, " +
             "SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue " +
             "FROM Loc l " +
-            "LEFT JOIN Orders o ON l.loc_id = o.loc_id " +
-            "LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id"
+            "LEFT JOIN Orders o ON l.loc_id = o.loc_id"
         );
-        sql.append(dateClause(start, end, false));
+        sql.append(dateJoinClause(start, end));
+        sql.append(" LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id");
         sql.append(" GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST");
 
         List<String[]> rows = new ArrayList<>();
@@ -105,28 +125,25 @@ public class ManagementUI {
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
-                int    ordCount = rs.getInt("ord_count");
-                double revenue  = rs.getDouble("revenue");
-                boolean noRevenue = rs.wasNull();
-                double avg = ordCount > 0 ? revenue / ordCount : 0;
+                int     ordCount = rs.getInt("ord_count");
+                double  revenue  = rs.getDouble("revenue");
+                boolean noRev    = rs.wasNull() || revenue == 0;
+                double  avg      = (ordCount > 0 && !noRev) ? revenue / ordCount : 0;
 
                 rows.add(new String[]{
                     String.valueOf(rs.getInt("loc_id")),
                     rs.getString("city") + ", " + rs.getString("state"),
                     String.valueOf(ordCount),
-                    noRevenue ? "$0.00" : String.format("$%.2f", revenue),
-                    ordCount > 0 && !noRevenue ? String.format("$%.2f", avg) : "-"
+                    noRev ? "$0.00" : String.format("$%.2f", revenue),
+                    (ordCount > 0 && !noRev) ? String.format("$%.2f", avg) : "-"
                 });
             }
         }
 
-        // Column headers
         String[] headers = {"ID", "Location", "Orders", "Revenue", "Avg Order"};
         int[]    widths  = {4, 22, 7, 12, 10};
+        int page = 0, pageSize = 10;
 
-        // Paginate
-        int page = 0;
-        int pageSize = 10;
         while (true) {
             RestaurantApp.clearScreen();
             System.out.println("\n--- Sales Report by Location ---");
@@ -136,11 +153,13 @@ public class ManagementUI {
             printTable(headers, widths, pageRows);
             RestaurantApp.printPageControls(page, rows.size(), pageSize);
 
-            String input = RestaurantApp.readLine("> ").trim().toUpperCase();
-            if      (input.equals("B"))                           return;
+            String input = RestaurantApp.readLine("> ");
+            if (input == null) continue;
+            input = input.trim().toUpperCase();
+
+            if      (input.equals("B"))                                                    return;
             else if (input.equals("N") && RestaurantApp.hasNextPage(page, rows.size(), pageSize)) page++;
-            else if (input.equals("P") && page > 0)              page--;
-            else if (!input.equals("N") && !input.equals("P"))   { /* ignore */ }
+            else if (input.equals("P") && page > 0)                                        page--;
         }
     }
 
@@ -151,12 +170,13 @@ public class ManagementUI {
         RestaurantApp.clearScreen();
         System.out.println("\n--- Top-Selling Menu Items ---");
 
-        // Optional location filter — show table so user doesn't need to memorise IDs
         Integer locId = promptLocationFilter(conn);
 
         String[] range = promptDateRange();
         String start = range[0], end = range[1];
 
+        // INNER JOINs are correct here — we only want items that appear in
+        // actual orders, so the date WHERE clause is appropriate.
         StringBuilder sql = new StringBuilder(
             "SELECT m.itmid, m.name, m.itmtyp, " +
             "SUM(oi.qty) AS total_qty, COUNT(DISTINCT o.ord_id) AS order_count " +
@@ -170,7 +190,7 @@ public class ManagementUI {
             sql.append(" WHERE o.loc_id = ?");
             hasWhere = true;
         }
-        sql.append(dateClause(start, end, hasWhere));
+        sql.append(dateWhereClause(start, end, hasWhere));
         sql.append(" GROUP BY m.itmid, m.name, m.itmtyp ORDER BY total_qty DESC");
 
         List<String[]> rows = new ArrayList<>();
@@ -203,9 +223,8 @@ public class ManagementUI {
 
         String[] headers = {"Rank", "ID", "Name", "Type", "Qty Sold", "# Orders"};
         int[]    widths  = {4, 6, 32, 6, 9, 9};
+        int page = 0, pageSize = 15;
 
-        int page = 0;
-        int pageSize = 15;
         while (true) {
             RestaurantApp.clearScreen();
             System.out.println("\n--- Top-Selling Menu Items ---");
@@ -216,10 +235,13 @@ public class ManagementUI {
             printTable(headers, widths, pageRows);
             RestaurantApp.printPageControls(page, rows.size(), pageSize);
 
-            String input = RestaurantApp.readLine("> ").trim().toUpperCase();
-            if      (input.equals("B"))                                    return;
+            String input = RestaurantApp.readLine("> ");
+            if (input == null) continue;
+            input = input.trim().toUpperCase();
+
+            if      (input.equals("B"))                                                    return;
             else if (input.equals("N") && RestaurantApp.hasNextPage(page, rows.size(), pageSize)) page++;
-            else if (input.equals("P") && page > 0)                       page--;
+            else if (input.equals("P") && page > 0)                                        page--;
         }
     }
 
@@ -233,13 +255,16 @@ public class ManagementUI {
         String[] range = promptDateRange();
         String start = range[0], end = range[1];
 
+        // Date filter goes in the JOIN ON clause so accounts with no orders
+        // in the date range still appear with ord_count=0 rather than being
+        // excluded entirely. A WHERE clause on a LEFT JOIN would eliminate them.
         StringBuilder sql = new StringBuilder(
             "SELECT a.acc_id, a.f_name, a.l_name, a.email, a.points, " +
             "COUNT(o.ord_id) AS ord_count " +
             "FROM Acct a " +
             "LEFT JOIN Orders o ON a.acc_id = o.acc_id"
         );
-        sql.append(dateClause(start, end, false));
+        sql.append(dateJoinClause(start, end));
         sql.append(" GROUP BY a.acc_id, a.f_name, a.l_name, a.email, a.points");
         sql.append(" ORDER BY ord_count DESC, a.points DESC");
 
@@ -271,9 +296,8 @@ public class ManagementUI {
 
         String[] headers = {"Rank", "ID", "Name", "Email", "Orders", "Points"};
         int[]    widths  = {4, 6, 22, 28, 7, 7};
+        int page = 0, pageSize = 12;
 
-        int page = 0;
-        int pageSize = 12;
         while (true) {
             RestaurantApp.clearScreen();
             System.out.println("\n--- Customer Activity Report ---");
@@ -283,10 +307,13 @@ public class ManagementUI {
             printTable(headers, widths, pageRows);
             RestaurantApp.printPageControls(page, rows.size(), pageSize);
 
-            String input = RestaurantApp.readLine("> ").trim().toUpperCase();
-            if      (input.equals("B"))                                    return;
+            String input = RestaurantApp.readLine("> ");
+            if (input == null) continue;
+            input = input.trim().toUpperCase();
+
+            if      (input.equals("B"))                                                    return;
             else if (input.equals("N") && RestaurantApp.hasNextPage(page, rows.size(), pageSize)) page++;
-            else if (input.equals("P") && page > 0)                       page--;
+            else if (input.equals("P") && page > 0)                                        page--;
         }
     }
 
@@ -294,7 +321,6 @@ public class ManagementUI {
     // Print a generic table with given headers, column widths, and rows
     // ----------------------------------------------------------------
     static void printTable(String[] headers, int[] widths, List<String[]> rows) {
-        // Header row
         StringBuilder headerLine = new StringBuilder("  ");
         for (int i = 0; i < headers.length; i++) {
             headerLine.append(String.format("%-" + widths[i] + "s ", headers[i]));
@@ -311,8 +337,7 @@ public class ManagementUI {
             StringBuilder line = new StringBuilder("  ");
             for (int i = 0; i < row.length && i < widths.length; i++) {
                 String cell = row[i] != null ? row[i] : "";
-                // Truncate if too long
-                if (cell.length() > widths[i]) cell = cell.substring(0, widths[i] - 1) + "…";
+                if (cell.length() > widths[i]) cell = cell.substring(0, widths[i] - 1) + "~";
                 line.append(String.format("%-" + widths[i] + "s ", cell));
             }
             System.out.println(line);
@@ -326,7 +351,7 @@ public class ManagementUI {
         if (start != null || end != null) {
             String s = start != null ? start : "beginning";
             String e = end   != null ? end   : "today";
-            System.out.println("  Period: " + s + " → " + e);
+            System.out.println("  Period: " + s + " to " + e);
         } else {
             System.out.println("  Period: All-time");
         }
@@ -366,9 +391,9 @@ public class ManagementUI {
                 ResultSet rs = ps.executeQuery();
                 if (rs.next()) return id;
             }
-            System.out.println("  Location not found — showing all locations.");
+            System.out.println("  Location not found -- showing all locations.");
         } catch (NumberFormatException e) {
-            System.out.println("  Invalid input — showing all locations.");
+            System.out.println("  Invalid input -- showing all locations.");
         }
         return null;
     }
