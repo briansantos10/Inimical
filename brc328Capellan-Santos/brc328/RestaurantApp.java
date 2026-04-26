@@ -2,6 +2,8 @@ import java.io.Console;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 public class RestaurantApp {
@@ -10,11 +12,11 @@ public class RestaurantApp {
     static Console console = System.console();
 
     public static void main(String[] args) {
-        String uid = null;
+        String uid  = null;
         String pass = null;
         Connection conn = null;
 
-        uid = readLine("Enter Oracle user id: ");
+        uid  = readLine("Enter Oracle user id: ");
         pass = readPassword("Enter Oracle password for " + uid + ": ");
 
         while (conn == null) {
@@ -22,7 +24,7 @@ public class RestaurantApp {
                 conn = DriverManager.getConnection(DBURL, uid, pass);
             } catch (SQLException se) {
                 System.err.println("Login failed: " + se.getMessage());
-                uid = readLine("Enter Oracle user id: ");
+                uid  = readLine("Enter Oracle user id: ");
                 pass = readPassword("Enter Oracle password for " + uid + ": ");
             }
         }
@@ -38,7 +40,7 @@ public class RestaurantApp {
 
     static void runApp(Connection conn) throws SQLException {
         while (true) {
-            RestaurantApp.clearScreen();
+            clearScreen();
             System.out.println("\n=============================");
             System.out.println("  Inimical's Restaurant");
             System.out.println("=============================");
@@ -50,16 +52,10 @@ public class RestaurantApp {
 
             String choice = readLine("Select: ");
 
-            switch (choice.trim()) {
-                case "1":
-                    CustomerUI.run(conn);
-                    break;
-                case "2":
-                    // ManagementUI.run(conn);
-                    break;
-                case "3":
-                    // LocationManagerUI.run(conn);
-                    break;
+            switch (choice == null ? "" : choice.trim()) {
+                case "1": CustomerUI.run(conn);         break;
+                case "2": ManagementUI.run(conn);       break;
+                case "3": LocationManagerUI.run(conn);  break;
                 case "4":
                     System.out.println("Goodbye!");
                     return;
@@ -141,5 +137,37 @@ public class RestaurantApp {
             e.printStackTrace(pw);
             pw.println();
         } catch (java.io.IOException ignored) {}
+    }
+
+    // ----------------------------------------------------------------
+    // Pagination helpers — used by all UI classes
+    // ----------------------------------------------------------------
+
+    // Returns a sublist for the given page (0-indexed)
+    static <T> List<T> getPage(List<T> items, int page, int pageSize) {
+        int from = page * pageSize;
+        int to   = Math.min(from + pageSize, items.size());
+        if (from >= items.size()) return new ArrayList<>();
+        return items.subList(from, to);
+    }
+
+    // True if there is a next page
+    static boolean hasNextPage(int page, int totalItems, int pageSize) {
+        return (page + 1) * pageSize < totalItems;
+    }
+
+    // Prints the standard paging control footer
+    static void printPageControls(int page, int totalItems, int pageSize) {
+        int totalPages = (int) Math.ceil((double) totalItems / pageSize);
+        System.out.println();
+        divider();
+        System.out.printf("  Page %d of %d  (%d items total)%n",
+            page + 1, Math.max(1, totalPages), totalItems);
+        StringBuilder controls = new StringBuilder("  ");
+        if (page > 0)                                controls.append("[P] Prev  ");
+        if (hasNextPage(page, totalItems, pageSize)) controls.append("[N] Next  ");
+        controls.append("[B] Back");
+        System.out.println(controls);
+        divider();
     }
 }

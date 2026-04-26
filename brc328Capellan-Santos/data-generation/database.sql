@@ -250,3 +250,45 @@ BEGIN
     END IF;
 END;
 /
+
+-- Computes the effective price of any menu item (standard or
+-- custom) at a given location.
+CREATE OR REPLACE FUNCTION get_item_price(p_itmid NUMBER, p_loc_id NUMBER)
+RETURN NUMBER IS
+    v_itmtyp  CHAR(1);
+    v_nat_pr  NUMBER(6,2);
+    v_loc_pr  NUMBER(6,2);
+    v_total   NUMBER := 0;
+    v_child_price NUMBER;
+BEGIN
+    SELECT itmtyp, nat_pr INTO v_itmtyp, v_nat_pr
+    FROM MItem WHERE itmid = p_itmid;
+
+    IF v_itmtyp = 'S' THEN
+        -- Check for local price override
+        BEGIN
+            SELECT loc_pr INTO v_loc_pr
+            FROM MILoc WHERE itmid = p_itmid AND loc_id = p_loc_id;
+            RETURN v_loc_pr;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                RETURN NVL(v_nat_pr, 0);
+        END;
+    ELSE
+        -- Custom item: sum inventory components
+        SELECT NVL(SUM(i.basect * c.qty), 0) INTO v_total
+        FROM MIComp c JOIN InvItm i ON c.inv_id = i.inv_id
+        WHERE c.itmid = p_itmid;
+
+        -- Add contained menu items (recursive)
+        FOR rec IN (SELECT compid, qty FROM MICont WHERE contid = p_itmid) LOOP
+            v_child_price := get_item_price(rec.compid, p_loc_id);
+            v_total := v_total + (v_child_price * rec.qty);
+        END LOOP;
+
+        RETURN v_total;
+    END IF;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN RETURN 0;
+END;
+/
