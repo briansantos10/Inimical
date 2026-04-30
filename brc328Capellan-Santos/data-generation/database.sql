@@ -112,7 +112,7 @@ CREATE TABLE MenuItemMealType (
 );
 
 -- MenuItem Composed_of InventoryItem
-CREATE TABLE MIComp (
+CREATE TABLE MenuItemIngredient (
     itmid NUMBER(5),
     inv_id NUMBER(5),
     qty NUMBER(5,2) NOT NULL,
@@ -277,7 +277,7 @@ BEGIN
     ELSE
         -- Custom item: sum inventory components
         SELECT NVL(SUM(i.basect * c.qty), 0) INTO v_total
-        FROM MIComp c JOIN InvItm i ON c.inv_id = i.inv_id
+        FROM MenuItemIngredient c JOIN InvItm i ON c.inv_id = i.inv_id
         WHERE c.itmid = p_itmid;
 
         -- Add contained menu items (recursive)

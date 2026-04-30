@@ -790,7 +790,7 @@ public class CustomerUI {
     static double computeCustomPrice(Connection conn, int itemId, int locId) throws SQLException {
         double total = 0;
 
-        String invSql = "SELECT i.basect, c.qty FROM MIComp c JOIN InvItm i ON c.inv_id = i.inv_id WHERE c.itmid = ?";
+        String invSql = "SELECT i.basect, c.qty FROM MenuItemIngredient c JOIN InvItm i ON c.inv_id = i.inv_id WHERE c.itmid = ?";
         try (PreparedStatement ps = conn.prepareStatement(invSql)) {
             ps.setInt(1, itemId);
             ResultSet rs = ps.executeQuery();
@@ -1250,7 +1250,7 @@ public class CustomerUI {
 
         // Inventory components
         String invSql =
-            "SELECT i.name, c.qty, i.unit FROM MIComp c " +
+            "SELECT i.name, c.qty, i.unit FROM MenuItemIngredient c " +
             "JOIN InvItm i ON c.inv_id = i.inv_id WHERE c.itmid = ?";
         boolean hasAny = false;
         try (PreparedStatement ps = conn.prepareStatement(invSql)) {
@@ -1306,7 +1306,7 @@ public class CustomerUI {
 
         System.out.println("\nEnter ingredient ID to add it, or press Enter when done.");
 
-        String insertSql = "INSERT INTO MIComp (itmid, inv_id, qty) VALUES (?, ?, ?)";
+        String insertSql = "INSERT INTO MenuItemIngredient (itmid, inv_id, qty) VALUES (?, ?, ?)";
         int added = 0;
 
         try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
@@ -1493,7 +1493,7 @@ public class CustomerUI {
         RestaurantApp.divider();
 
         String invSql =
-            "SELECT i.name, c.qty, i.unit FROM MIComp c JOIN InvItm i ON c.inv_id = i.inv_id WHERE c.itmid = ?";
+            "SELECT i.name, c.qty, i.unit FROM MenuItemIngredient c JOIN InvItm i ON c.inv_id = i.inv_id WHERE c.itmid = ?";
         try (PreparedStatement ps = conn.prepareStatement(invSql)) {
             ps.setInt(1, itemId);
             ResultSet rs = ps.executeQuery();
