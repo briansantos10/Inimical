@@ -114,7 +114,7 @@ public class ManagementUI {
             "LEFT JOIN Orders o ON l.loc_id = o.loc_id"
         );
         sql.append(dateJoinClause(start, end));
-        sql.append(" LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id");
+        sql.append(" LEFT JOIN OrderMenuItem oi ON o.ord_id = oi.ord_id");
         sql.append(" GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST");
 
         List<String[]> rows = new ArrayList<>();
@@ -180,7 +180,7 @@ public class ManagementUI {
         StringBuilder sql = new StringBuilder(
             "SELECT m.itmid, m.name, m.itmtyp, " +
             "SUM(oi.qty) AS total_qty, COUNT(DISTINCT o.ord_id) AS order_count " +
-            "FROM OrdMItm oi " +
+            "FROM OrderMenuItem oi " +
             "JOIN MenuItem m ON oi.itmid = m.itmid " +
             "JOIN Orders o ON oi.ord_id = o.ord_id"
         );

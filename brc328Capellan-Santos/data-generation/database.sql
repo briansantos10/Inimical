@@ -1,15 +1,15 @@
 -- Drop all tables
-DROP TABLE MIMeal CASCADE CONSTRAINTS;
-DROP TABLE OrdMItm CASCADE CONSTRAINTS;
-DROP TABLE MIComp CASCADE CONSTRAINTS;
-DROP TABLE MICont CASCADE CONSTRAINTS;
-DROP TABLE MILoc CASCADE CONSTRAINTS;
+DROP TABLE MenuItemMealType CASCADE CONSTRAINTS;
+DROP TABLE OrderMenuItem CASCADE CONSTRAINTS;
+DROP TABLE MenuItemIngredient CASCADE CONSTRAINTS;
+DROP TABLE MenuItemContains CASCADE CONSTRAINTS;
+DROP TABLE MenuItemLocation CASCADE CONSTRAINTS;
 DROP TABLE Orders CASCADE CONSTRAINTS;
-DROP TABLE CCard CASCADE CONSTRAINTS;
-DROP TABLE MItem CASCADE CONSTRAINTS;
-DROP TABLE InvItm CASCADE CONSTRAINTS;
-DROP TABLE Acct CASCADE CONSTRAINTS;
-DROP TABLE Loc CASCADE CONSTRAINTS;
+DROP TABLE CreditCard CASCADE CONSTRAINTS;
+DROP TABLE MenuItem CASCADE CONSTRAINTS;
+DROP TABLE InventoryItem CASCADE CONSTRAINTS;
+DROP TABLE Account CASCADE CONSTRAINTS;
+DROP TABLE Location CASCADE CONSTRAINTS;
 
 -- Drop sequences if they exist
 DROP SEQUENCE acct_seq;
@@ -52,13 +52,13 @@ CREATE TABLE Account (
 );
 
 -- -- CreditCard
-CREATE TABLE CCard (
+CREATE TABLE CreditCard (
     cc_num VARCHAR2(16) PRIMARY KEY,
     type VARCHAR2(15),
     cvc CHAR(4),
     expiry CHAR(5),
     acc_id NUMBER(5),
-    FOREIGN KEY (acc_id) REFERENCES Acct(acc_id) ON DELETE SET NULL
+    FOREIGN KEY (acc_id) REFERENCES Account(acc_id) ON DELETE SET NULL
 );
 
 -- MenuItem
@@ -73,11 +73,11 @@ CREATE TABLE MenuItem (
     cr_acc NUMBER(5), --  creator account ID (which Account created this item?)
     crdate DATE, --  creation date (when was it created?)
 
-    FOREIGN KEY (cr_acc) REFERENCES Acct(acc_id) ON DELETE SET NULL
+    FOREIGN KEY (cr_acc) REFERENCES Account(acc_id) ON DELETE SET NULL
 );
 
 -- InventoryItem
-CREATE TABLE InvItm (
+CREATE TABLE InventoryItem (
     inv_id NUMBER(5) PRIMARY KEY,
     name VARCHAR2(50) NOT NULL,
     basect NUMBER(6,2),
@@ -94,9 +94,9 @@ CREATE TABLE Orders (
     acc_id NUMBER(5),
     loc_id NUMBER(5) NOT NULL,
     cc_num VARCHAR2(16) NOT NULL,
-    FOREIGN KEY (acc_id) REFERENCES Acct(acc_id) ON DELETE SET NULL, -- Account can be deleted without deleting the order, but we lose the info on who placed it
-    FOREIGN KEY (loc_id) REFERENCES Loc(loc_id) ON DELETE CASCADE, -- If a location is deleted, we delete all orders associated with it (since they can't be fulfilled)
-    FOREIGN KEY (cc_num) REFERENCES CCard(cc_num) ON DELETE CASCADE -- If a credit card is deleted, we delete all orders associated with it (since they can't be paid for)
+    FOREIGN KEY (acc_id) REFERENCES Account(acc_id) ON DELETE SET NULL, -- Account can be deleted without deleting the order, but we lose the info on who placed it
+    FOREIGN KEY (loc_id) REFERENCES Location(loc_id) ON DELETE CASCADE, -- If a location is deleted, we delete all orders associated with it (since they can't be fulfilled)
+    FOREIGN KEY (cc_num) REFERENCES CreditCard(cc_num) ON DELETE CASCADE -- If a credit card is deleted, we delete all orders associated with it (since they can't be paid for)
 );
 
 -- ============================================
@@ -108,7 +108,7 @@ CREATE TABLE MenuItemMealType (
     itmid NUMBER(5),
     mltype VARCHAR2(10) CHECK (mltype IN ('lunch', 'dinner', 'dessert')),
     PRIMARY KEY (itmid, mltype),
-    FOREIGN KEY (itmid) REFERENCES MItem(itmid) ON DELETE CASCADE -- If a MenuItem is deleted, we delete all its meal type associations (since the item no longer exists)
+    FOREIGN KEY (itmid) REFERENCES MenuItem(itmid) ON DELETE CASCADE -- If a MenuItem is deleted, we delete all its meal type associations (since the item no longer exists)
 );
 
 -- MenuItem Composed_of InventoryItem
@@ -117,8 +117,8 @@ CREATE TABLE MenuItemIngredient (
     inv_id NUMBER(5),
     qty NUMBER(5,2) NOT NULL,
     PRIMARY KEY (itmid, inv_id),
-    FOREIGN KEY (itmid) REFERENCES MItem(itmid) ON DELETE CASCADE,
-    FOREIGN KEY (inv_id) REFERENCES InvItm(inv_id) ON DELETE CASCADE
+    FOREIGN KEY (itmid) REFERENCES MenuItem(itmid) ON DELETE CASCADE,
+    FOREIGN KEY (inv_id) REFERENCES InventoryItem(inv_id) ON DELETE CASCADE
 );
 
 -- MenuItem Contains MenuItem (recursive)
@@ -129,27 +129,27 @@ CREATE TABLE MenuItemContains (
     compid NUMBER(5),
     qty NUMBER(3) NOT NULL,
     PRIMARY KEY (contid, compid),
-    FOREIGN KEY (contid) REFERENCES MItem(itmid) ON DELETE CASCADE,
-    FOREIGN KEY (compid) REFERENCES MItem(itmid) -- 
+    FOREIGN KEY (contid) REFERENCES MenuItem(itmid) ON DELETE CASCADE,
+    FOREIGN KEY (compid) REFERENCES MenuItem(itmid) -- 
 );
 -- Order includes MenuItem
-CREATE TABLE OrdMItm (
+CREATE TABLE OrderMenuItem (
     ord_id NUMBER(10),
     itmid NUMBER(5),
     qty NUMBER(3) NOT NULL,
     PRIMARY KEY (ord_id, itmid),
     FOREIGN KEY (ord_id) REFERENCES Orders(ord_id) ON DELETE CASCADE,
-    FOREIGN KEY (itmid) REFERENCES MItem(itmid) ON DELETE CASCADE
+    FOREIGN KEY (itmid) REFERENCES MenuItem(itmid) ON DELETE CASCADE
 );
 
 -- MenuItem Priced_at Location
-CREATE TABLE MILoc (
+CREATE TABLE MenuItemLocation (
     itmid NUMBER(5),
     loc_id NUMBER(5),
     loc_pr NUMBER(6,2) NOT NULL,
     PRIMARY KEY (itmid, loc_id),
-    FOREIGN KEY (itmid) REFERENCES MItem(itmid) ON DELETE CASCADE,
-    FOREIGN KEY (loc_id) REFERENCES Loc(loc_id) ON DELETE CASCADE
+    FOREIGN KEY (itmid) REFERENCES MenuItem(itmid) ON DELETE CASCADE,
+    FOREIGN KEY (loc_id) REFERENCES Location(loc_id) ON DELETE CASCADE
 );
 
 
@@ -268,7 +268,7 @@ BEGIN
         -- Check for local price override
         BEGIN
             SELECT loc_pr INTO v_loc_pr
-            FROM MILoc WHERE itmid = p_itmid AND loc_id = p_loc_id;
+            FROM MenuItemLocation WHERE itmid = p_itmid AND loc_id = p_loc_id;
             RETURN v_loc_pr;
         EXCEPTION
             WHEN NO_DATA_FOUND THEN
@@ -277,7 +277,7 @@ BEGIN
     ELSE
         -- Custom item: sum inventory components
         SELECT NVL(SUM(i.basect * c.qty), 0) INTO v_total
-        FROM MenuItemIngredient c JOIN InvItm i ON c.inv_id = i.inv_id
+        FROM MenuItemIngredient c JOIN InventoryItem i ON c.inv_id = i.inv_id
         WHERE c.itmid = p_itmid;
 
         -- Add contained menu items (recursive)
@@ -292,3 +292,10 @@ EXCEPTION
     WHEN NO_DATA_FOUND THEN RETURN 0;
 END;
 /
+
+
+-- Changes as I am building out the CustomerUI and realizing that enforcing pickup times for online orders is too restrictive for testing purposes. 
+-- I will remove this trigger and the pickup column.
+
+DROP TRIGGER check_order_pickup_time;
+ALTER TABLE Orders DROP COLUMN pickup;

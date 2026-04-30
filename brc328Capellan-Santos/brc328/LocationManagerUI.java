@@ -101,7 +101,7 @@ public class LocationManagerUI {
             "SUM(oi.qty) AS total_qty, " +
             "a.f_name, a.l_name " +
             "FROM Orders o " +
-            "LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id " +
+            "LEFT JOIN OrderMenuItem oi ON o.ord_id = oi.ord_id " +
             "LEFT JOIN Account a ON o.acc_id = a.acc_id " +
             "WHERE o.loc_id = ? " +
             "GROUP BY o.ord_id, o.placed, o.ordtyp, a.f_name, a.l_name " +
@@ -219,7 +219,7 @@ public class LocationManagerUI {
         String itemSql =
             "SELECT m.itmid, m.name, oi.qty, " +
             "get_item_price(m.itmid, ?) AS unit_pr " +
-            "FROM OrdMItm oi " +
+            "FROM OrderMenuItem oi " +
             "JOIN MenuItem m ON oi.itmid = m.itmid " +
             "WHERE oi.ord_id = ?";
 
@@ -298,7 +298,7 @@ public class LocationManagerUI {
         List<String[]> rows = new ArrayList<>();
         String sql =
             "SELECT m.itmid, m.name, m.nat_pr, ml.loc_pr " +
-            "FROM MILoc ml JOIN MenuItem m ON ml.itmid = m.itmid " +
+            "FROM MenuItemLocation ml JOIN MenuItem m ON ml.itmid = m.itmid " +
             "WHERE ml.loc_id = ? ORDER BY m.itmid";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, locId);
@@ -328,7 +328,7 @@ public class LocationManagerUI {
         String listSql =
             "SELECT m.itmid, m.name, m.nat_pr, ml.loc_pr AS existing " +
             "FROM MenuItem m " +
-            "LEFT JOIN MILoc ml ON m.itmid = ml.itmid AND ml.loc_id = ? " +
+            "LEFT JOIN MenuItemLocation ml ON m.itmid = ml.itmid AND ml.loc_id = ? " +
             "WHERE m.itmtyp = 'S' ORDER BY m.itmid";
 
         try (PreparedStatement ps = conn.prepareStatement(listSql)) {
@@ -393,7 +393,7 @@ public class LocationManagerUI {
         }
 
         // Upsert — update if exists, insert if not
-        String existSql = "SELECT loc_pr FROM MILoc WHERE itmid = ? AND loc_id = ?";
+        String existSql = "SELECT loc_pr FROM MenuItemLocation WHERE itmid = ? AND loc_id = ?";
         boolean exists = false;
         try (PreparedStatement ps = conn.prepareStatement(existSql)) {
             ps.setInt(1, itemId);
@@ -403,7 +403,7 @@ public class LocationManagerUI {
         }
 
         if (exists) {
-            String updSql = "UPDATE MILoc SET loc_pr = ? WHERE itmid = ? AND loc_id = ?";
+            String updSql = "UPDATE MenuItemLocation SET loc_pr = ? WHERE itmid = ? AND loc_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(updSql)) {
                 ps.setDouble(1, newPrice);
                 ps.setInt(2, itemId);
@@ -412,7 +412,7 @@ public class LocationManagerUI {
             }
             System.out.println("  Override updated.");
         } else {
-            String insSql = "INSERT INTO MILoc (itmid, loc_id, loc_pr) VALUES (?, ?, ?)";
+            String insSql = "INSERT INTO MenuItemLocation (itmid, loc_id, loc_pr) VALUES (?, ?, ?)";
             try (PreparedStatement ps = conn.prepareStatement(insSql)) {
                 ps.setInt(1, itemId);
                 ps.setInt(2, locId);
@@ -450,7 +450,7 @@ public class LocationManagerUI {
         if (itemId == -1) return;
 
         String chkSql =
-            "SELECT m.name FROM MILoc ml JOIN MenuItem m ON ml.itmid = m.itmid " +
+            "SELECT m.name FROM MenuItemLocation ml JOIN MenuItem m ON ml.itmid = m.itmid " +
             "WHERE ml.itmid = ? AND ml.loc_id = ?";
         String itemName = null;
         try (PreparedStatement ps = conn.prepareStatement(chkSql)) {
@@ -473,7 +473,7 @@ public class LocationManagerUI {
             return;
         }
 
-        String delSql = "DELETE FROM MILoc WHERE itmid = ? AND loc_id = ?";
+        String delSql = "DELETE FROM MenuItemLocation WHERE itmid = ? AND loc_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(delSql)) {
             ps.setInt(1, itemId);
             ps.setInt(2, locId);

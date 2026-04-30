@@ -437,7 +437,7 @@ public class CustomerUI {
             "SELECT m.itmid, m.name, m.itmtyp, " +
             "COALESCE(ml.loc_pr, m.nat_pr) AS price " +
             "FROM MenuItem m " +
-            "LEFT JOIN MILoc ml ON m.itmid = ml.itmid AND ml.loc_id = ? "
+            "LEFT JOIN MenuItemLocation ml ON m.itmid = ml.itmid AND ml.loc_id = ? "
         );
 
         List<Object> params = new ArrayList<>();
@@ -600,8 +600,8 @@ public class CustomerUI {
         Timestamp now = new Timestamp(System.currentTimeMillis());
 
         String insertOrder =
-            "INSERT INTO Orders (ord_id, placed, pickup, ordtyp, status, acc_id, loc_id, cc_num) " +
-            "VALUES (ord_seq.NEXTVAL, ?, NULL, ?, 'pending', ?, ?, ?)";
+            "INSERT INTO Orders (ord_id, placed, ordtyp, status, acc_id, loc_id, cc_num) " +
+            "VALUES (ord_seq.NEXTVAL, ?, ?, 'pending', ?, ?, ?)";
 
         int newOrdId = -1;
         try (PreparedStatement ps = conn.prepareStatement(insertOrder, new String[]{"ord_id"})) {
@@ -625,7 +625,7 @@ public class CustomerUI {
             }
         }
 
-        String insertItem = "INSERT INTO OrdMItm (ord_id, itmid, qty) VALUES (?, ?, ?)";
+        String insertItem = "INSERT INTO OrderMenuItem (ord_id, itmid, qty) VALUES (?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(insertItem)) {
             for (Session.CartItem ci : session.cart) {
                 ps.setInt(1, newOrdId);
@@ -655,7 +655,7 @@ public class CustomerUI {
     // ----------------------------------------------------------------
     static String handlePayment(Connection conn, Session session) throws SQLException {
         if (session.isLoggedIn()) {
-            String sql = "SELECT cc_num, type, expiry FROM CCard WHERE acc_id = ?";
+            String sql = "SELECT cc_num, type, expiry FROM CreditCard WHERE acc_id = ?";
             List<String[]> cards = new ArrayList<>();
 
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -718,7 +718,7 @@ public class CustomerUI {
             ccNum = stripped;
         }
 
-        String checkSql = "SELECT cc_num FROM CCard WHERE cc_num = ?";
+        String checkSql = "SELECT cc_num FROM CreditCard WHERE cc_num = ?";
         try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
             ps.setString(1, ccNum);
             ResultSet rs = ps.executeQuery();
@@ -745,7 +745,7 @@ public class CustomerUI {
             }
         }
 
-        String insertSql = "INSERT INTO CCard (cc_num, type, cvc, expiry, acc_id) VALUES (?, 'one-time', NULL, ?, ?)";
+        String insertSql = "INSERT INTO CreditCard (cc_num, type, cvc, expiry, acc_id) VALUES (?, 'one-time', NULL, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
             ps.setString(1, ccNum);
             ps.setString(2, expiry);
@@ -770,7 +770,7 @@ public class CustomerUI {
             String type = rs.getString("itmtyp");
 
             if (type.equals("S")) {
-                String locSql = "SELECT loc_pr FROM MILoc WHERE itmid = ? AND loc_id = ?";
+                String locSql = "SELECT loc_pr FROM MenuItemLocation WHERE itmid = ? AND loc_id = ?";
                 try (PreparedStatement ps2 = conn.prepareStatement(locSql)) {
                     ps2.setInt(1, itemId);
                     ps2.setInt(2, locId);
@@ -790,7 +790,7 @@ public class CustomerUI {
     static double computeCustomPrice(Connection conn, int itemId, int locId) throws SQLException {
         double total = 0;
 
-        String invSql = "SELECT i.basect, c.qty FROM MenuItemIngredient c JOIN InvItm i ON c.inv_id = i.inv_id WHERE c.itmid = ?";
+        String invSql = "SELECT i.basect, c.qty FROM MenuItemIngredient c JOIN InventoryItem i ON c.inv_id = i.inv_id WHERE c.itmid = ?";
         try (PreparedStatement ps = conn.prepareStatement(invSql)) {
             ps.setInt(1, itemId);
             ResultSet rs = ps.executeQuery();
@@ -912,7 +912,7 @@ public class CustomerUI {
 
         String sql =
             "SELECT m.name, oi.qty " +
-            "FROM OrdMItm oi JOIN MenuItem m ON oi.itmid = m.itmid " +
+            "FROM OrderMenuItem oi JOIN MenuItem m ON oi.itmid = m.itmid " +
             "WHERE oi.ord_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -937,7 +937,7 @@ public class CustomerUI {
         while (true) {
             System.out.println("\n--- Payment Methods ---");
 
-            String sql = "SELECT cc_num, type, expiry FROM CCard WHERE acc_id = ?";
+            String sql = "SELECT cc_num, type, expiry FROM CreditCard WHERE acc_id = ?";
             List<String> cardNums = new ArrayList<>();
 
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -1005,7 +1005,7 @@ public class CustomerUI {
             }
         }
 
-        String deleteSql = "DELETE FROM CCard WHERE cc_num = ?";
+        String deleteSql = "DELETE FROM CreditCard WHERE cc_num = ?";
         try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
             ps.setString(1, ccNum);
             ps.executeUpdate();
@@ -1251,7 +1251,7 @@ public class CustomerUI {
         // Inventory components
         String invSql =
             "SELECT i.name, c.qty, i.unit FROM MenuItemIngredient c " +
-            "JOIN InvItm i ON c.inv_id = i.inv_id WHERE c.itmid = ?";
+            "JOIN InventoryItem i ON c.inv_id = i.inv_id WHERE c.itmid = ?";
         boolean hasAny = false;
         try (PreparedStatement ps = conn.prepareStatement(invSql)) {
             ps.setInt(1, itemId);
@@ -1289,7 +1289,7 @@ public class CustomerUI {
         java.util.Map<Integer, String> unitMap = new java.util.LinkedHashMap<>();
         java.util.Map<Integer, String> nameMap = new java.util.LinkedHashMap<>();
 
-        String listSql = "SELECT inv_id, name, unit FROM InvItm ORDER BY inv_id";
+        String listSql = "SELECT inv_id, name, unit FROM InventoryItem ORDER BY inv_id";
         try (PreparedStatement ps = conn.prepareStatement(listSql)) {
             ResultSet rs = ps.executeQuery();
             System.out.printf("  %-6s %-30s %s%n", "ID", "Name", "Unit");
@@ -1493,7 +1493,7 @@ public class CustomerUI {
         RestaurantApp.divider();
 
         String invSql =
-            "SELECT i.name, c.qty, i.unit FROM MenuItemIngredient c JOIN InvItm i ON c.inv_id = i.inv_id WHERE c.itmid = ?";
+            "SELECT i.name, c.qty, i.unit FROM MenuItemIngredient c JOIN InventoryItem i ON c.inv_id = i.inv_id WHERE c.itmid = ?";
         try (PreparedStatement ps = conn.prepareStatement(invSql)) {
             ps.setInt(1, itemId);
             ResultSet rs = ps.executeQuery();

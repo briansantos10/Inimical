@@ -254,3 +254,71 @@ Caused by: Error : 6575, Position : 77, SQL = SELECT l.loc_id, l.city, l.state, 
 	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
 	... 18 more
 
+[Thu Apr 30 15:26:46 EDT 2026] top-level
+java.sql.SQLSyntaxErrorException: ORA-00942: table or view does not exist
+
+https://docs.oracle.com/error-help/db/ora-00942/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:718)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:618)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1372)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:975)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:237)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:524)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:298)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1257)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1425)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1299)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1856)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1632)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3973)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:4160)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1120)
+	at CustomerUI.enterNewCard(CustomerUI.java:724)
+	at CustomerUI.handlePayment(CustomerUI.java:698)
+	at CustomerUI.checkout(CustomerUI.java:594)
+	at CustomerUI.browseItems(CustomerUI.java:339)
+	at CustomerUI.placeOrder(CustomerUI.java:238)
+	at CustomerUI.handleGuest(CustomerUI.java:54)
+	at CustomerUI.run(CustomerUI.java:29)
+	at RestaurantApp.runApp(RestaurantApp.java:56)
+	at RestaurantApp.main(RestaurantApp.java:34)
+Caused by: Error : 942, Position : 19, SQL = SELECT cc_num FROM CreditCard WHERE cc_num = :1 , Original SQL = SELECT cc_num FROM CreditCard WHERE cc_num = ?, Error Message = ORA-00942: table or view does not exist
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
+	... 23 more
+
+[Thu Apr 30 15:31:43 EDT 2026] top-level
+java.sql.SQLException: ORA-20006: Online orders must have a pickup time
+ORA-06512: at "BRC328.CHECK_ORDER_PICKUP_TIME", line 5
+ORA-04088: error during execution of trigger 'BRC328.CHECK_ORDER_PICKUP_TIME'
+
+https://docs.oracle.com/error-help/db/ora-20006/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:718)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:618)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1372)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:975)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:237)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:524)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:298)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForRows(T4CPreparedStatement.java:1510)
+	at oracle.jdbc.driver.OracleStatement.executeSQLStatement(OracleStatement.java:2021)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1634)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3973)
+	at oracle.jdbc.driver.OraclePreparedStatement.doExecuteLargeUpdate(OraclePreparedStatement.java:4339)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeLargeUpdate(OraclePreparedStatement.java:4316)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeUpdate(OraclePreparedStatement.java:4291)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeUpdate(OraclePreparedStatementWrapper.java:1007)
+	at CustomerUI.checkout(CustomerUI.java:614)
+	at CustomerUI.browseItems(CustomerUI.java:339)
+	at CustomerUI.placeOrder(CustomerUI.java:238)
+	at CustomerUI.customerHome(CustomerUI.java:193)
+	at CustomerUI.run(CustomerUI.java:33)
+	at RestaurantApp.runApp(RestaurantApp.java:56)
+	at RestaurantApp.main(RestaurantApp.java:34)
+Caused by: Error : 20006, Position : 92, SQL = INSERT INTO Orders (ord_id, placed, pickup, ordtyp, status, acc_id, loc_id, cc_num) VALUES (ord_seq.NEXTVAL, :1 , NULL, :2 , 'pending', :3 , :4 , :5 ) RETURNING ord_id INTO :6  [SQL INCLUDES EXPRESSIONS ADDED BY THE ORACLE JDBC DRIVER], Original SQL = INSERT INTO Orders (ord_id, placed, pickup, ordtyp, status, acc_id, loc_id, cc_num) VALUES (ord_seq.NEXTVAL, ?, NULL, ?, 'pending', ?, ?, ?) RETURNING ord_id INTO ?, Error Message = ORA-20006: Online orders must have a pickup time
+ORA-06512: at "BRC328.CHECK_ORDER_PICKUP_TIME", line 5
+ORA-04088: error during execution of trigger 'BRC328.CHECK_ORDER_PICKUP_TIME'
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
+	... 21 more
+
