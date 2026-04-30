@@ -62,7 +62,7 @@ CREATE TABLE CCard (
 );
 
 -- MenuItem
-CREATE TABLE MItem (
+CREATE TABLE MenuItem (
     itmid NUMBER(5) PRIMARY KEY,
     name VARCHAR2(50) NOT NULL,
     itmtyp CHAR(1) NOT NULL CHECK (itmtyp IN ('S', 'C')), -- Standard or Custom  

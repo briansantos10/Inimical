@@ -436,7 +436,7 @@ public class CustomerUI {
         StringBuilder sql = new StringBuilder(
             "SELECT m.itmid, m.name, m.itmtyp, " +
             "COALESCE(ml.loc_pr, m.nat_pr) AS price " +
-            "FROM MItem m " +
+            "FROM MenuItem m " +
             "LEFT JOIN MILoc ml ON m.itmid = ml.itmid AND ml.loc_id = ? "
         );
 
@@ -536,7 +536,7 @@ public class CustomerUI {
                 continue;
             }
 
-            String checkSql = "SELECT name FROM MItem WHERE itmid = ?";
+            String checkSql = "SELECT name FROM MenuItem WHERE itmid = ?";
             try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
                 ps.setInt(1, itemId);
                 ResultSet rs = ps.executeQuery();
@@ -761,7 +761,7 @@ public class CustomerUI {
     // Get effective item price (local override or national, recursive for custom)
     // ----------------------------------------------------------------
     static double getItemPrice(Connection conn, int itemId, int locId) throws SQLException {
-        String typeSql = "SELECT itmtyp, nat_pr FROM MItem WHERE itmid = ?";
+        String typeSql = "SELECT itmtyp, nat_pr FROM MenuItem WHERE itmid = ?";
         try (PreparedStatement ps = conn.prepareStatement(typeSql)) {
             ps.setInt(1, itemId);
             ResultSet rs = ps.executeQuery();
@@ -912,7 +912,7 @@ public class CustomerUI {
 
         String sql =
             "SELECT m.name, oi.qty " +
-            "FROM OrdMItm oi JOIN MItem m ON oi.itmid = m.itmid " +
+            "FROM OrdMItm oi JOIN MenuItem m ON oi.itmid = m.itmid " +
             "WHERE oi.ord_id = ?";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -1023,7 +1023,7 @@ public class CustomerUI {
 
         // Show user's own custom items
         String myItemsSql =
-            "SELECT itmid, name, crdate FROM MItem WHERE cr_acc = ? ORDER BY crdate DESC";
+            "SELECT itmid, name, crdate FROM MenuItem WHERE cr_acc = ? ORDER BY crdate DESC";
         try (PreparedStatement ps = conn.prepareStatement(myItemsSql)) {
             ps.setInt(1, session.accountId);
             ResultSet rs = ps.executeQuery();
@@ -1047,7 +1047,7 @@ public class CustomerUI {
         // Show all other custom items
         System.out.println("\n  All Custom Items:");
         String allSql =
-            "SELECT m.itmid, m.name, a.f_name, a.l_name FROM MItem m " +
+            "SELECT m.itmid, m.name, a.f_name, a.l_name FROM MenuItem m " +
             "LEFT JOIN Account a ON m.cr_acc = a.acc_id " +
             "WHERE m.itmtyp = 'C' AND (m.cr_acc != ? OR m.cr_acc IS NULL) ORDER BY m.itmid";
         try (PreparedStatement ps = conn.prepareStatement(allSql)) {
@@ -1114,7 +1114,7 @@ public class CustomerUI {
             if (input == null || input.trim().isEmpty()) return;
             input = input.trim();
 
-            String dupeSql = "SELECT itmid FROM MItem WHERE LOWER(name) = LOWER(?)";
+            String dupeSql = "SELECT itmid FROM MenuItem WHERE LOWER(name) = LOWER(?)";
             try (PreparedStatement ps = conn.prepareStatement(dupeSql)) {
                 ps.setString(1, input);
                 ResultSet rs = ps.executeQuery();
@@ -1128,7 +1128,7 @@ public class CustomerUI {
 
         // ---- STEP 3: Insert the item shell ----
         String insertSql =
-            "INSERT INTO MItem (itmid, name, itmtyp, nat_pr, cr_acc, crdate) " +
+            "INSERT INTO MenuItem (itmid, name, itmtyp, nat_pr, cr_acc, crdate) " +
             "VALUES (item_seq.NEXTVAL, ?, 'C', NULL, ?, SYSDATE)";
 
         int newItemId = -1;
@@ -1199,7 +1199,7 @@ public class CustomerUI {
         String label = itmtyp.equals("S") ? "Standard" : "Custom";
         System.out.println("\n  Available " + label + " Items:");
 
-        String sql = "SELECT itmid, name FROM MItem WHERE itmtyp = ? ORDER BY itmid";
+        String sql = "SELECT itmid, name FROM MenuItem WHERE itmtyp = ? ORDER BY itmid";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, itmtyp);
             ResultSet rs = ps.executeQuery();
@@ -1222,7 +1222,7 @@ public class CustomerUI {
             int id = RestaurantApp.readInt("Enter item ID to use as base (0 to cancel): ");
             if (id == -1) return -1;
 
-            String check = "SELECT itmid FROM MItem WHERE itmid = ? AND itmtyp = ?";
+            String check = "SELECT itmid FROM MenuItem WHERE itmid = ? AND itmtyp = ?";
             try (PreparedStatement ps = conn.prepareStatement(check)) {
                 ps.setInt(1, id);
                 ps.setString(2, itmtyp);
@@ -1237,7 +1237,7 @@ public class CustomerUI {
     // Show an item's ingredients (read-only context display)
     // ----------------------------------------------------------------
     static void showItemIngredients(Connection conn, int itemId) throws SQLException {
-        String nameSql = "SELECT name FROM MItem WHERE itmid = ?";
+        String nameSql = "SELECT name FROM MenuItem WHERE itmid = ?";
         String itemName = "";
         try (PreparedStatement ps = conn.prepareStatement(nameSql)) {
             ps.setInt(1, itemId);
@@ -1266,7 +1266,7 @@ public class CustomerUI {
         // Contained menu items
         String contSql =
             "SELECT m.name, c.qty FROM MICont c " +
-            "JOIN MItem m ON c.compid = m.itmid WHERE c.contid = ?";
+            "JOIN MenuItem m ON c.compid = m.itmid WHERE c.contid = ?";
         try (PreparedStatement ps = conn.prepareStatement(contSql)) {
             ps.setInt(1, itemId);
             ResultSet rs = ps.executeQuery();
@@ -1392,11 +1392,11 @@ public class CustomerUI {
         List<Object> listParams = new ArrayList<>();
 
         if (baseItemId != -1) {
-            listSql = "SELECT itmid, name, itmtyp FROM MItem WHERE itmid != ? AND itmid != ? ORDER BY itmtyp, itmid";
+            listSql = "SELECT itmid, name, itmtyp FROM MenuItem WHERE itmid != ? AND itmid != ? ORDER BY itmtyp, itmid";
             listParams.add(itemId);
             listParams.add(baseItemId);
         } else {
-            listSql = "SELECT itmid, name, itmtyp FROM MItem WHERE itmid != ? ORDER BY itmtyp, itmid";
+            listSql = "SELECT itmid, name, itmtyp FROM MenuItem WHERE itmid != ? ORDER BY itmtyp, itmid";
             listParams.add(itemId);
         }
 
@@ -1448,7 +1448,7 @@ public class CustomerUI {
                         continue;
                     }
 
-                    String checkSql = "SELECT itmid FROM MItem WHERE itmid = ?";
+                    String checkSql = "SELECT itmid FROM MenuItem WHERE itmid = ?";
                     try (PreparedStatement check = conn.prepareStatement(checkSql)) {
                         check.setInt(1, childId);
                         ResultSet rs = check.executeQuery();
@@ -1509,7 +1509,7 @@ public class CustomerUI {
         }
 
         String contSql =
-            "SELECT m.name, c.qty FROM MICont c JOIN MItem m ON c.compid = m.itmid WHERE c.contid = ?";
+            "SELECT m.name, c.qty FROM MICont c JOIN MenuItem m ON c.compid = m.itmid WHERE c.contid = ?";
         try (PreparedStatement ps = conn.prepareStatement(contSql)) {
             ps.setInt(1, itemId);
             ResultSet rs = ps.executeQuery();

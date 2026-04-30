@@ -220,7 +220,7 @@ public class LocationManagerUI {
             "SELECT m.itmid, m.name, oi.qty, " +
             "get_item_price(m.itmid, ?) AS unit_pr " +
             "FROM OrdMItm oi " +
-            "JOIN MItem m ON oi.itmid = m.itmid " +
+            "JOIN MenuItem m ON oi.itmid = m.itmid " +
             "WHERE oi.ord_id = ?";
 
         RestaurantApp.divider();
@@ -298,7 +298,7 @@ public class LocationManagerUI {
         List<String[]> rows = new ArrayList<>();
         String sql =
             "SELECT m.itmid, m.name, m.nat_pr, ml.loc_pr " +
-            "FROM MILoc ml JOIN MItem m ON ml.itmid = m.itmid " +
+            "FROM MILoc ml JOIN MenuItem m ON ml.itmid = m.itmid " +
             "WHERE ml.loc_id = ? ORDER BY m.itmid";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, locId);
@@ -327,7 +327,7 @@ public class LocationManagerUI {
 
         String listSql =
             "SELECT m.itmid, m.name, m.nat_pr, ml.loc_pr AS existing " +
-            "FROM MItem m " +
+            "FROM MenuItem m " +
             "LEFT JOIN MILoc ml ON m.itmid = ml.itmid AND ml.loc_id = ? " +
             "WHERE m.itmtyp = 'S' ORDER BY m.itmid";
 
@@ -361,7 +361,7 @@ public class LocationManagerUI {
         int itemId = RestaurantApp.readInt("\nEnter item ID (0 to cancel): ");
         if (itemId == -1) return;
 
-        String chkSql = "SELECT name FROM MItem WHERE itmid = ? AND itmtyp = 'S'";
+        String chkSql = "SELECT name FROM MenuItem WHERE itmid = ? AND itmtyp = 'S'";
         String itemName = null;
         try (PreparedStatement ps = conn.prepareStatement(chkSql)) {
             ps.setInt(1, itemId);
@@ -450,7 +450,7 @@ public class LocationManagerUI {
         if (itemId == -1) return;
 
         String chkSql =
-            "SELECT m.name FROM MILoc ml JOIN MItem m ON ml.itmid = m.itmid " +
+            "SELECT m.name FROM MILoc ml JOIN MenuItem m ON ml.itmid = m.itmid " +
             "WHERE ml.itmid = ? AND ml.loc_id = ?";
         String itemName = null;
         try (PreparedStatement ps = conn.prepareStatement(chkSql)) {
