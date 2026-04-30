@@ -9,9 +9,6 @@ public class LocationManagerUI {
     // ----------------------------------------------------------------
     public static void run(Connection conn) throws SQLException {
         RestaurantApp.clearScreen();
-        System.out.println("\n=============================");
-        System.out.println("  Location Manager");
-        System.out.println("=============================");
 
         int locId = selectLocation(conn);
         if (locId == -1) return;
@@ -20,13 +17,13 @@ public class LocationManagerUI {
     }
 
     // ----------------------------------------------------------------
-    // Location selection — mirrors CustomerUI.selectLocation style
+    // Location selection
     // ----------------------------------------------------------------
     static int selectLocation(Connection conn) throws SQLException {
         RestaurantApp.clearScreen();
         System.out.println("\n--- Select Your Location ---");
 
-        String sql = "SELECT loc_id, city, state, stname, st_num FROM Loc ORDER BY loc_id";
+        String sql = "SELECT loc_id, city, state, stname, st_num FROM Location ORDER BY loc_id";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ResultSet rs = ps.executeQuery();
 
@@ -52,7 +49,7 @@ public class LocationManagerUI {
             int id = RestaurantApp.readInt("Enter location ID (0 to cancel): ");
             if (id == -1) return -1;
 
-            String chk = "SELECT loc_id FROM Loc WHERE loc_id = ?";
+            String chk = "SELECT loc_id FROM Location WHERE loc_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(chk)) {
                 ps.setInt(1, id);
                 ResultSet rs = ps.executeQuery();
@@ -105,13 +102,13 @@ public class LocationManagerUI {
             "a.f_name, a.l_name " +
             "FROM Orders o " +
             "LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id " +
-            "LEFT JOIN Acct a ON o.acc_id = a.acc_id " +
+            "LEFT JOIN Account a ON o.acc_id = a.acc_id " +
             "WHERE o.loc_id = ? " +
             "GROUP BY o.ord_id, o.placed, o.ordtyp, a.f_name, a.l_name " +
             "ORDER BY o.placed DESC";
 
-        List<String[]> rows = new ArrayList<>();
-        List<Integer> orderIds = new ArrayList<>();
+        List<String[]> rows     = new ArrayList<>();
+        List<Integer>  orderIds = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, locId);
@@ -126,10 +123,10 @@ public class LocationManagerUI {
                 String customer = rs.getString("f_name") != null
                     ? rs.getString("f_name") + " " + rs.getString("l_name")
                     : "Guest";
-                String qty = String.valueOf(rs.getInt("total_qty"));
 
                 rows.add(new String[]{
-                    String.valueOf(ordId), placed, type, customer, qty
+                    String.valueOf(ordId), placed, type, customer,
+                    String.valueOf(rs.getInt("total_qty"))
                 });
             }
         }
@@ -144,8 +141,7 @@ public class LocationManagerUI {
 
         String[] headers = {"Order #", "Placed", "Type", "Customer", "Items"};
         int[]    widths  = {8, 17, 10, 22, 5};
-        int page     = 0;
-        int pageSize = 12;
+        int page = 0, pageSize = 12;
 
         while (true) {
             RestaurantApp.clearScreen();
@@ -156,7 +152,9 @@ public class LocationManagerUI {
             RestaurantApp.printPageControls(page, rows.size(), pageSize);
             System.out.println("  Enter an order number to view its items.");
 
-            String input = RestaurantApp.readLine("> ").trim().toUpperCase();
+            String input = RestaurantApp.readLine("> ");
+            if (input == null) continue;
+            input = input.trim().toUpperCase();
 
             if (input.equals("B")) {
                 return;
@@ -164,7 +162,7 @@ public class LocationManagerUI {
                 page++;
             } else if (input.equals("P") && page > 0) {
                 page--;
-            } else {
+            } else if (!input.isEmpty()) {
                 try {
                     int ordId = Integer.parseInt(input);
                     if (orderIds.contains(ordId)) {
@@ -182,6 +180,8 @@ public class LocationManagerUI {
 
     // ----------------------------------------------------------------
     // Drill-down: show line items for a single order
+    // Uses get_item_price() PL/SQL function for correct custom item
+    // pricing — same fix as ManagementUI sales report.
     // ----------------------------------------------------------------
     static void viewOrderDetail(Connection conn, int ordId, int locId) throws SQLException {
         RestaurantApp.clearScreen();
@@ -190,8 +190,9 @@ public class LocationManagerUI {
         String hdrSql =
             "SELECT o.placed, o.ordtyp, o.cc_num, " +
             "a.f_name, a.l_name, a.email " +
-            "FROM Orders o LEFT JOIN Acct a ON o.acc_id = a.acc_id " +
+            "FROM Orders o LEFT JOIN Account a ON o.acc_id = a.acc_id " +
             "WHERE o.ord_id = ?";
+
         try (PreparedStatement ps = conn.prepareStatement(hdrSql)) {
             ps.setInt(1, ordId);
             ResultSet rs = ps.executeQuery();
@@ -212,12 +213,14 @@ public class LocationManagerUI {
             }
         }
 
+        // get_item_price() handles both standard items (with local override)
+        // and custom items (recursive component sum). Previously COALESCE(loc_pr, nat_pr)
+        // returned NULL for custom items, making all custom-item line totals $0.00.
         String itemSql =
             "SELECT m.itmid, m.name, oi.qty, " +
-            "COALESCE(ml.loc_pr, m.nat_pr) AS unit_pr " +
+            "get_item_price(m.itmid, ?) AS unit_pr " +
             "FROM OrdMItm oi " +
             "JOIN MItem m ON oi.itmid = m.itmid " +
-            "LEFT JOIN MILoc ml ON m.itmid = ml.itmid AND ml.loc_id = ? " +
             "WHERE oi.ord_id = ?";
 
         RestaurantApp.divider();
@@ -230,20 +233,22 @@ public class LocationManagerUI {
             ps.setInt(2, ordId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                int    qty    = rs.getInt("qty");
-                double unitPr = rs.getDouble("unit_pr");
-                boolean noPrice = rs.wasNull();
-                double lineTotal = noPrice ? 0 : unitPr * qty;
+                int    qty      = rs.getInt("qty");
+                double unitPr   = rs.getDouble("unit_pr");
+                double lineTotal = unitPr * qty;
                 subtotal += lineTotal;
 
-                String priceStr = noPrice ? "varies" : String.format("$%.2f", lineTotal);
                 System.out.printf("  %-6d %-35s %-5d %10s%n",
-                    rs.getInt("itmid"), rs.getString("name"), qty, priceStr);
+                    rs.getInt("itmid"),
+                    rs.getString("name"),
+                    qty,
+                    String.format("$%.2f", lineTotal));
             }
         }
 
         RestaurantApp.divider();
-        System.out.printf("  %-48s %10s%n", "Subtotal (excl. tax):", String.format("$%.2f", subtotal));
+        System.out.printf("  %-48s %10s%n",
+            "Subtotal (excl. tax):", String.format("$%.2f", subtotal));
 
         RestaurantApp.readLine("\nPress Enter to go back...");
     }
@@ -369,11 +374,22 @@ public class LocationManagerUI {
             itemName = rs.getString("name");
         }
 
-        double newPrice = RestaurantApp.readDouble("New local price for \"" + itemName + "\": $");
-        if (newPrice <= 0) {
-            System.out.println("  Price must be greater than $0.00.");
-            RestaurantApp.readLine("  Press Enter to continue...");
-            return;
+        // Prompt for price with Enter-to-cancel support
+        double newPrice = -1;
+        while (newPrice < 0) {
+            String priceInput = RestaurantApp.readLine(
+                "New local price for \"" + itemName + "\" (or press Enter to cancel): $");
+            if (priceInput == null || priceInput.trim().isEmpty()) return;
+            try {
+                double parsed = Double.parseDouble(priceInput.trim());
+                if (parsed <= 0) {
+                    System.out.println("  Price must be greater than $0.00.");
+                } else {
+                    newPrice = parsed;
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("  Please enter a valid price (e.g. 5.99).");
+            }
         }
 
         // Upsert — update if exists, insert if not
@@ -407,7 +423,8 @@ public class LocationManagerUI {
         }
 
         conn.commit();
-        System.out.println("  " + itemName + " → $" + String.format("%.2f", newPrice) + " at this location.");
+        System.out.println(
+            "  \"" + itemName + "\" is now $" + String.format("%.2f", newPrice) + " at this location.");
         RestaurantApp.readLine("  Press Enter to continue...");
     }
 
@@ -464,7 +481,8 @@ public class LocationManagerUI {
         }
 
         conn.commit();
-        System.out.println("  Override removed. \"" + itemName + "\" now uses the national price.");
+        System.out.println(
+            "  Override removed. \"" + itemName + "\" now uses the national price.");
         RestaurantApp.readLine("  Press Enter to continue...");
     }
 
@@ -472,7 +490,7 @@ public class LocationManagerUI {
     // Helper — "City, ST" for a location ID
     // ----------------------------------------------------------------
     static String getLocName(Connection conn, int locId) throws SQLException {
-        String sql = "SELECT city, state FROM Loc WHERE loc_id = ?";
+        String sql = "SELECT city, state FROM Location WHERE loc_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, locId);
             ResultSet rs = ps.executeQuery();

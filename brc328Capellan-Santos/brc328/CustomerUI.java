@@ -61,9 +61,12 @@ public class CustomerUI {
         System.out.println("\n--- Login ---");
 
         String email = RestaurantApp.readLine("Enter email: ");
-        if (email == null || email.trim().isEmpty()) return false;
+        if (email == null || email.trim().isEmpty()) {
+            System.out.println("Login cancelled.");
+            return false;
+        }
 
-        String sql = "SELECT acc_id, f_name, l_name FROM Acct WHERE email = ?";
+        String sql = "SELECT acc_id, f_name, l_name FROM Account WHERE email = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, email.trim());
             ResultSet rs = ps.executeQuery();
@@ -89,17 +92,26 @@ public class CustomerUI {
         System.out.println("\n--- Create Account ---");
 
         String firstName = RestaurantApp.readLine("First name: ");
-        if (firstName == null || firstName.trim().isEmpty()) return false;
+        if (firstName == null || firstName.trim().isEmpty()) {
+            System.out.println("Account creation cancelled.");
+            return false;
+        }
 
         String middleName = RestaurantApp.readLine("Middle name (press Enter to skip): ");
 
         String lastName = RestaurantApp.readLine("Last name: ");
-        if (lastName == null || lastName.trim().isEmpty()) return false;
+        if (lastName == null || lastName.trim().isEmpty()) {
+            System.out.println("Account creation cancelled.");
+            return false;
+        }
 
         String email = RestaurantApp.readLine("Email: ");
-        if (email == null || email.trim().isEmpty()) return false;
+        if (email == null || email.trim().isEmpty()) {
+            System.out.println("Account creation cancelled.");
+            return false;
+        }
 
-        String checkSql = "SELECT acc_id FROM Acct WHERE email = ?";
+        String checkSql = "SELECT acc_id FROM Account WHERE email = ?";
         try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
             ps.setString(1, email.trim());
             ResultSet rs = ps.executeQuery();
@@ -110,9 +122,12 @@ public class CustomerUI {
         }
 
         String phone = RestaurantApp.readLine("Phone number: ");
-        if (phone == null || phone.trim().isEmpty()) return false;
+        if (phone == null || phone.trim().isEmpty()) {
+            System.out.println("Account creation cancelled.");
+            return false;
+        }
 
-        String insertSql = "INSERT INTO Acct (acc_id, f_name, m_name, l_name, email, phone, points) " +
+        String insertSql = "INSERT INTO Account (acc_id, f_name, m_name, l_name, email, phone, points) " +
                            "VALUES (acct_seq.NEXTVAL, ?, ?, ?, ?, ?, 0)";
 
         try (PreparedStatement ps = conn.prepareStatement(insertSql, new String[]{"acc_id"})) {
@@ -127,7 +142,7 @@ public class CustomerUI {
             if (keys.next()) {
                 session.accountId = keys.getInt(1);
             } else {
-                String fetchSql = "SELECT acc_id FROM Acct WHERE email = ?";
+                String fetchSql = "SELECT acc_id FROM Account WHERE email = ?";
                 try (PreparedStatement ps2 = conn.prepareStatement(fetchSql)) {
                     ps2.setString(1, email.trim());
                     ResultSet rs2 = ps2.executeQuery();
@@ -152,7 +167,7 @@ public class CustomerUI {
             RestaurantApp.clearScreen();
 
             int points = 0;
-            String ptsSql = "SELECT points FROM Acct WHERE acc_id = ?";
+            String ptsSql = "SELECT points FROM Account WHERE acc_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(ptsSql)) {
                 ps.setInt(1, session.accountId);
                 ResultSet rs = ps.executeQuery();
@@ -232,7 +247,7 @@ public class CustomerUI {
         RestaurantApp.clearScreen();
         System.out.println("\n--- Select a Location ---");
 
-        String sql = "SELECT loc_id, city, state, stname, st_num FROM Loc ORDER BY loc_id";
+        String sql = "SELECT loc_id, city, state, stname, st_num FROM Location ORDER BY loc_id";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ResultSet rs = ps.executeQuery();
 
@@ -259,7 +274,7 @@ public class CustomerUI {
             int locId = RestaurantApp.readInt("Enter location ID (0 to cancel): ");
             if (locId == -1) return false;
 
-            String checkSql = "SELECT loc_id, city FROM Loc WHERE loc_id = ?";
+            String checkSql = "SELECT loc_id, city FROM Location WHERE loc_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
                 ps.setInt(1, locId);
                 ResultSet rs = ps.executeQuery();
@@ -802,7 +817,7 @@ public class CustomerUI {
     // Get location tax rate
     // ----------------------------------------------------------------
     static double getLocationTaxRate(Connection conn, int locId) throws SQLException {
-        String sql = "SELECT tax_rt FROM Loc WHERE loc_id = ?";
+        String sql = "SELECT tax_rt FROM Location WHERE loc_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, locId);
             ResultSet rs = ps.executeQuery();
@@ -843,7 +858,7 @@ public class CustomerUI {
 
         String sql =
             "SELECT o.ord_id, o.placed, o.ordtyp, l.city " +
-            "FROM Orders o JOIN Loc l ON o.loc_id = l.loc_id " +
+            "FROM Orders o JOIN Location l ON o.loc_id = l.loc_id " +
             "WHERE o.acc_id = ? ORDER BY o.placed DESC";
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -1033,7 +1048,7 @@ public class CustomerUI {
         System.out.println("\n  All Custom Items:");
         String allSql =
             "SELECT m.itmid, m.name, a.f_name, a.l_name FROM MItem m " +
-            "LEFT JOIN Acct a ON m.cr_acc = a.acc_id " +
+            "LEFT JOIN Account a ON m.cr_acc = a.acc_id " +
             "WHERE m.itmtyp = 'C' AND (m.cr_acc != ? OR m.cr_acc IS NULL) ORDER BY m.itmid";
         try (PreparedStatement ps = conn.prepareStatement(allSql)) {
             ps.setInt(1, session.accountId);

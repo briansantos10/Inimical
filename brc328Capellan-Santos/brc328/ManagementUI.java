@@ -261,7 +261,7 @@ public class ManagementUI {
         StringBuilder sql = new StringBuilder(
             "SELECT a.acc_id, a.f_name, a.l_name, a.email, a.points, " +
             "COUNT(o.ord_id) AS ord_count " +
-            "FROM Acct a " +
+            "FROM Account a " +
             "LEFT JOIN Orders o ON a.acc_id = o.acc_id"
         );
         sql.append(dateJoinClause(start, end));

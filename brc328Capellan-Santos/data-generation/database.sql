@@ -29,7 +29,7 @@ CREATE SEQUENCE ord_seq  START WITH 20000 INCREMENT BY 1;
 -- ============================================
 
 -- Location
-CREATE TABLE Loc (
+CREATE TABLE Location (
     loc_id NUMBER(5) PRIMARY KEY,
     addr VARCHAR2(100),
     stname VARCHAR2(50),
@@ -41,7 +41,7 @@ CREATE TABLE Loc (
 );
 
 -- -- Account
-CREATE TABLE Acct (
+CREATE TABLE Account (
     acc_id NUMBER(5) PRIMARY KEY,
     f_name VARCHAR2(30),
     m_name VARCHAR2(30),
