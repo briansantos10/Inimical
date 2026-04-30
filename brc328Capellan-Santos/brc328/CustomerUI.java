@@ -444,7 +444,7 @@ public class CustomerUI {
         params.add(session.locId);
 
         if (mealType != null) {
-            sql.append("JOIN MIMeal mm ON m.itmid = mm.itmid AND mm.mltype = ? ");
+            sql.append("JOIN MenuItemMealType mm ON m.itmid = mm.itmid AND mm.mltype = ? ");
             params.add(mealType);
         }
 
@@ -799,7 +799,7 @@ public class CustomerUI {
             }
         }
 
-        String contSql = "SELECT compid, qty FROM MICont WHERE contid = ?";
+        String contSql = "SELECT compid, qty FROM MenuItemContains WHERE contid = ?";
         try (PreparedStatement ps = conn.prepareStatement(contSql)) {
             ps.setInt(1, itemId);
             ResultSet rs = ps.executeQuery();
@@ -1158,7 +1158,7 @@ public class CustomerUI {
         // ---- STEP 4: Link the base item if chosen ----
         int baseContCount = 0;
         if (baseItemId != -1) {
-            String linkSql = "INSERT INTO MICont (contid, compid, qty) VALUES (?, ?, 1)";
+            String linkSql = "INSERT INTO MenuItemContains (contid, compid, qty) VALUES (?, ?, 1)";
             try (PreparedStatement ps = conn.prepareStatement(linkSql)) {
                 ps.setInt(1, newItemId);
                 ps.setInt(2, baseItemId);
@@ -1265,7 +1265,7 @@ public class CustomerUI {
 
         // Contained menu items
         String contSql =
-            "SELECT m.name, c.qty FROM MICont c " +
+            "SELECT m.name, c.qty FROM MenuItemContains c " +
             "JOIN MenuItem m ON c.compid = m.itmid WHERE c.contid = ?";
         try (PreparedStatement ps = conn.prepareStatement(contSql)) {
             ps.setInt(1, itemId);
@@ -1415,7 +1415,7 @@ public class CustomerUI {
         }
 
         System.out.println("\nEnter item ID and quantity (e.g. 1001 1), or press Enter to skip:");
-        String insertSql = "INSERT INTO MICont (contid, compid, qty) VALUES (?, ?, ?)";
+        String insertSql = "INSERT INTO MenuItemContains (contid, compid, qty) VALUES (?, ?, ?)";
         int added = 0;
 
         try (PreparedStatement ps = conn.prepareStatement(insertSql)) {
@@ -1509,7 +1509,7 @@ public class CustomerUI {
         }
 
         String contSql =
-            "SELECT m.name, c.qty FROM MICont c JOIN MenuItem m ON c.compid = m.itmid WHERE c.contid = ?";
+            "SELECT m.name, c.qty FROM MenuItemContains c JOIN MenuItem m ON c.compid = m.itmid WHERE c.contid = ?";
         try (PreparedStatement ps = conn.prepareStatement(contSql)) {
             ps.setInt(1, itemId);
             ResultSet rs = ps.executeQuery();

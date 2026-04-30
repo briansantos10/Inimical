@@ -104,7 +104,7 @@ CREATE TABLE Orders (
 -- ============================================
 
 -- Multi-valued: meal types
-CREATE TABLE MIMeal (
+CREATE TABLE MenuItemMealType (
     itmid NUMBER(5),
     mltype VARCHAR2(10) CHECK (mltype IN ('lunch', 'dinner', 'dessert')),
     PRIMARY KEY (itmid, mltype),
@@ -124,7 +124,7 @@ CREATE TABLE MIComp (
 -- MenuItem Contains MenuItem (recursive)
 -- contid = container item (custom item that contains others)
 -- compid = component item (menu item being contained)
-CREATE TABLE MICont (
+CREATE TABLE MenuItemContains (
     contid NUMBER(5),
     compid NUMBER(5),
     qty NUMBER(3) NOT NULL,
@@ -161,7 +161,7 @@ CREATE TABLE MILoc (
 -- Custom items MUST have cr_acc and crdate
 -- Custom items CANNOT have nat_pr
 CREATE OR REPLACE TRIGGER check_item_type_rules
-BEFORE INSERT OR UPDATE ON MItem
+BEFORE INSERT OR UPDATE ON MenuItem
 FOR EACH ROW
 BEGIN
     -- Standard items must have national price
@@ -194,13 +194,13 @@ END;
 
 -- Only Custom Items Can Contain Other Items
 CREATE OR REPLACE TRIGGER check_container_is_custom
-BEFORE INSERT OR UPDATE ON MICont
+BEFORE INSERT OR UPDATE ON MenuItemContains
 FOR EACH ROW
 DECLARE
     v_itmtyp CHAR(1);
 BEGIN
     -- Check if container item is custom
-    SELECT itmtyp INTO v_itmtyp FROM MItem WHERE itmid = :NEW.contid;
+    SELECT itmtyp INTO v_itmtyp FROM MenuItem WHERE itmid = :NEW.contid;
     
     IF v_itmtyp != 'C' THEN
         RAISE_APPLICATION_ERROR(-20005, 'Only custom items can contain other menu items');
@@ -243,7 +243,7 @@ BEGIN
         -- Only for orders with an account (walk-ins don't earn points)
         IF :NEW.acc_id IS NOT NULL THEN
             -- Award 10 points per completed order
-            UPDATE Acct 
+            UPDATE Account 
             SET points = points + 10
             WHERE acc_id = :NEW.acc_id;
         END IF;
@@ -262,7 +262,7 @@ RETURN NUMBER IS
     v_child_price NUMBER;
 BEGIN
     SELECT itmtyp, nat_pr INTO v_itmtyp, v_nat_pr
-    FROM MItem WHERE itmid = p_itmid;
+    FROM MenuItem WHERE itmid = p_itmid;
 
     IF v_itmtyp = 'S' THEN
         -- Check for local price override
@@ -281,7 +281,7 @@ BEGIN
         WHERE c.itmid = p_itmid;
 
         -- Add contained menu items (recursive)
-        FOR rec IN (SELECT compid, qty FROM MICont WHERE contid = p_itmid) LOOP
+        FOR rec IN (SELECT compid, qty FROM MenuItemContains WHERE contid = p_itmid) LOOP
             v_child_price := get_item_price(rec.compid, p_loc_id);
             v_total := v_total + (v_child_price * rec.qty);
         END LOOP;

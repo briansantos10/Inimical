@@ -1,0 +1,256 @@
+[Thu Apr 30 09:39:40 EDT 2026] top-level
+java.sql.SQLSyntaxErrorException: ORA-00942: table or view does not exist
+
+https://docs.oracle.com/error-help/db/ora-00942/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:718)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:618)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1372)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:975)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:237)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:524)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:298)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1257)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1425)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1299)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1856)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1632)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3973)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:4160)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1120)
+	at CustomerUI.displayItems(CustomerUI.java:464)
+	at CustomerUI.filterByMealType(CustomerUI.java:505)
+	at CustomerUI.browseItems(CustomerUI.java:319)
+	at CustomerUI.placeOrder(CustomerUI.java:238)
+	at CustomerUI.handleGuest(CustomerUI.java:54)
+	at CustomerUI.run(CustomerUI.java:29)
+	at RestaurantApp.runApp(RestaurantApp.java:56)
+	at RestaurantApp.main(RestaurantApp.java:34)
+Caused by: Error : 942, Position : 154, SQL = SELECT m.itmid, m.name, m.itmtyp, COALESCE(ml.loc_pr, m.nat_pr) AS price FROM MenuItem m LEFT JOIN MILoc ml ON m.itmid = ml.itmid AND ml.loc_id = :1 JOIN MenuItemMealType mm ON m.itmid = mm.itmid AND mm.mltype = :2 ORDER BY m.itmtyp ASC, m.itmid ASC, Original SQL = SELECT m.itmid, m.name, m.itmtyp, COALESCE(ml.loc_pr, m.nat_pr) AS price FROM MenuItem m LEFT JOIN MILoc ml ON m.itmid = ml.itmid AND ml.loc_id = ? JOIN MenuItemMealType mm ON m.itmid = mm.itmid AND mm.mltype = ? ORDER BY m.itmtyp ASC, m.itmid ASC, Error Message = ORA-00942: table or view does not exist
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
+	... 22 more
+
+[Thu Apr 30 09:45:22 EDT 2026] top-level
+java.sql.SQLSyntaxErrorException: ORA-00942: table or view does not exist
+
+https://docs.oracle.com/error-help/db/ora-00942/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:718)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:618)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1372)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:975)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:237)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:524)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:298)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1257)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1425)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1299)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1856)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1632)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3973)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:4160)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1120)
+	at ManagementUI.salesReport(ManagementUI.java:125)
+	at ManagementUI.run(ManagementUI.java:26)
+	at RestaurantApp.runApp(RestaurantApp.java:57)
+	at RestaurantApp.main(RestaurantApp.java:34)
+Caused by: Error : 942, Position : 138, SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Loc l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Original SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Loc l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Error Message = ORA-00942: table or view does not exist
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
+	... 18 more
+
+[Thu Apr 30 09:48:40 EDT 2026] top-level
+java.sql.SQLSyntaxErrorException: ORA-00942: table or view does not exist
+
+https://docs.oracle.com/error-help/db/ora-00942/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:718)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:618)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1372)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:975)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:237)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:524)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:298)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1257)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1425)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1299)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1856)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1632)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3973)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:4160)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1120)
+	at ManagementUI.salesReport(ManagementUI.java:125)
+	at ManagementUI.run(ManagementUI.java:26)
+	at RestaurantApp.runApp(RestaurantApp.java:57)
+	at RestaurantApp.main(RestaurantApp.java:34)
+Caused by: Error : 942, Position : 138, SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Loc l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Original SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Loc l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Error Message = ORA-00942: table or view does not exist
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
+	... 18 more
+
+[Thu Apr 30 09:53:18 EDT 2026] top-level
+java.sql.SQLException: ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+https://docs.oracle.com/error-help/db/ora-06575/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:718)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:618)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1372)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:975)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:237)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:524)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:298)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1257)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1425)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1299)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1856)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1632)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3973)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:4160)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1120)
+	at ManagementUI.salesReport(ManagementUI.java:125)
+	at ManagementUI.run(ManagementUI.java:26)
+	at RestaurantApp.runApp(RestaurantApp.java:57)
+	at RestaurantApp.main(RestaurantApp.java:34)
+Caused by: Error : 6575, Position : 77, SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Original SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Error Message = ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
+	... 18 more
+
+[Thu Apr 30 09:55:43 EDT 2026] top-level
+java.sql.SQLException: ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+https://docs.oracle.com/error-help/db/ora-06575/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:718)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:618)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1372)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:975)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:237)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:524)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:298)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1257)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1425)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1299)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1856)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1632)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3973)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:4160)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1120)
+	at ManagementUI.salesReport(ManagementUI.java:125)
+	at ManagementUI.run(ManagementUI.java:26)
+	at RestaurantApp.runApp(RestaurantApp.java:57)
+	at RestaurantApp.main(RestaurantApp.java:34)
+Caused by: Error : 6575, Position : 77, SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Original SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Error Message = ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
+	... 18 more
+
+[Thu Apr 30 09:56:58 EDT 2026] top-level
+java.sql.SQLException: ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+https://docs.oracle.com/error-help/db/ora-06575/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:718)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:618)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1372)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:975)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:237)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:524)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:298)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1257)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1425)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1299)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1856)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1632)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3973)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:4160)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1120)
+	at ManagementUI.salesReport(ManagementUI.java:125)
+	at ManagementUI.run(ManagementUI.java:26)
+	at RestaurantApp.runApp(RestaurantApp.java:57)
+	at RestaurantApp.main(RestaurantApp.java:34)
+Caused by: Error : 6575, Position : 77, SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Original SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Error Message = ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
+	... 18 more
+
+[Thu Apr 30 09:57:35 EDT 2026] top-level
+java.sql.SQLException: ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+https://docs.oracle.com/error-help/db/ora-06575/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:718)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:618)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1372)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:975)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:237)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:524)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:298)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1257)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1425)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1299)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1856)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1632)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3973)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:4160)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1120)
+	at ManagementUI.salesReport(ManagementUI.java:125)
+	at ManagementUI.run(ManagementUI.java:26)
+	at RestaurantApp.runApp(RestaurantApp.java:57)
+	at RestaurantApp.main(RestaurantApp.java:34)
+Caused by: Error : 6575, Position : 77, SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Original SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Error Message = ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
+	... 18 more
+
+[Thu Apr 30 10:03:11 EDT 2026] top-level
+java.sql.SQLException: ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+https://docs.oracle.com/error-help/db/ora-06575/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:718)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:618)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1372)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:975)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:237)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:524)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:298)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1257)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1425)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1299)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1856)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1632)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3973)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:4160)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1120)
+	at ManagementUI.salesReport(ManagementUI.java:125)
+	at ManagementUI.run(ManagementUI.java:26)
+	at RestaurantApp.runApp(RestaurantApp.java:57)
+	at RestaurantApp.main(RestaurantApp.java:34)
+Caused by: Error : 6575, Position : 77, SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Original SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Error Message = ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
+	... 18 more
+
+[Thu Apr 30 10:06:46 EDT 2026] top-level
+java.sql.SQLException: ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+https://docs.oracle.com/error-help/db/ora-06575/
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:718)
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:618)
+	at oracle.jdbc.driver.T4C8Oall.processError(T4C8Oall.java:1372)
+	at oracle.jdbc.driver.T4CTTIfun.receive(T4CTTIfun.java:975)
+	at oracle.jdbc.driver.T4CTTIfun.doRPC(T4CTTIfun.java:237)
+	at oracle.jdbc.driver.T4C8Oall.doOALL(T4C8Oall.java:524)
+	at oracle.jdbc.driver.T4CPreparedStatement.doOall8(T4CPreparedStatement.java:298)
+	at oracle.jdbc.driver.T4CPreparedStatement.executeForDescribe(T4CPreparedStatement.java:1257)
+	at oracle.jdbc.driver.OracleStatement.prepareDefineBufferAndExecute(OracleStatement.java:1425)
+	at oracle.jdbc.driver.OracleStatement.executeMaybeDescribe(OracleStatement.java:1299)
+	at oracle.jdbc.driver.OracleStatement.executeSQLSelect(OracleStatement.java:1856)
+	at oracle.jdbc.driver.OracleStatement.doExecuteWithTimeout(OracleStatement.java:1632)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeInternal(OraclePreparedStatement.java:3973)
+	at oracle.jdbc.driver.OraclePreparedStatement.executeQuery(OraclePreparedStatement.java:4160)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.executeQuery(OraclePreparedStatementWrapper.java:1120)
+	at ManagementUI.salesReport(ManagementUI.java:125)
+	at ManagementUI.run(ManagementUI.java:26)
+	at RestaurantApp.runApp(RestaurantApp.java:57)
+	at RestaurantApp.main(RestaurantApp.java:34)
+Caused by: Error : 6575, Position : 77, SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Original SQL = SELECT l.loc_id, l.city, l.state, COUNT(DISTINCT o.ord_id) AS ord_count, SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue FROM Location l LEFT JOIN Orders o ON l.loc_id = o.loc_id LEFT JOIN OrdMItm oi ON o.ord_id = oi.ord_id GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, Error Message = ORA-06575: Package or function GET_ITEM_PRICE is in an invalid state
+
+	at oracle.jdbc.driver.T4CTTIoer11.processError(T4CTTIoer11.java:726)
+	... 18 more
+

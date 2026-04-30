@@ -110,7 +110,7 @@ public class ManagementUI {
             "SELECT l.loc_id, l.city, l.state, " +
             "COUNT(DISTINCT o.ord_id) AS ord_count, " +
             "SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue " +
-            "FROM Loc l " +
+            "FROM Location l " +
             "LEFT JOIN Orders o ON l.loc_id = o.loc_id"
         );
         sql.append(dateJoinClause(start, end));
@@ -181,7 +181,7 @@ public class ManagementUI {
             "SELECT m.itmid, m.name, m.itmtyp, " +
             "SUM(oi.qty) AS total_qty, COUNT(DISTINCT o.ord_id) AS order_count " +
             "FROM OrdMItm oi " +
-            "JOIN MItem m ON oi.itmid = m.itmid " +
+            "JOIN MenuItem m ON oi.itmid = m.itmid " +
             "JOIN Orders o ON oi.ord_id = o.ord_id"
         );
 
@@ -365,7 +365,7 @@ public class ManagementUI {
         System.out.println("\n  Location filter (press Enter to show all locations):");
         System.out.println();
 
-        String sql = "SELECT loc_id, city, state, stname, st_num FROM Loc ORDER BY loc_id";
+        String sql = "SELECT loc_id, city, state, stname, st_num FROM Location ORDER BY loc_id";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ResultSet rs = ps.executeQuery();
             System.out.printf("  %-6s %-25s %s%n", "ID", "City", "Address");
@@ -385,7 +385,7 @@ public class ManagementUI {
 
         try {
             int id = Integer.parseInt(input.trim());
-            String chk = "SELECT loc_id FROM Loc WHERE loc_id = ?";
+            String chk = "SELECT loc_id FROM Location WHERE loc_id = ?";
             try (PreparedStatement ps = conn.prepareStatement(chk)) {
                 ps.setInt(1, id);
                 ResultSet rs = ps.executeQuery();
