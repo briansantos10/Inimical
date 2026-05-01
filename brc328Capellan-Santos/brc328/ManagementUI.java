@@ -4,9 +4,7 @@ import java.util.List;
 
 public class ManagementUI {
 
-    // ----------------------------------------------------------------
     // Entry point called from RestaurantApp
-    // ----------------------------------------------------------------
     public static void run(Connection conn) throws SQLException {
         while (true) {
             RestaurantApp.clearScreen();
@@ -32,10 +30,8 @@ public class ManagementUI {
         }
     }
 
-    // ----------------------------------------------------------------
     // Prompt for an optional date range
     // Returns a 2-element array: [startDate, endDate] (either may be null)
-    // ----------------------------------------------------------------
     static String[] promptDateRange() {
         System.out.println("\n  Date range filter (press Enter to skip for all-time):");
         String start = RestaurantApp.readLine("  Start date (YYYY-MM-DD): ");
@@ -56,12 +52,10 @@ public class ManagementUI {
         return new String[]{start, end};
     }
 
-    // ----------------------------------------------------------------
     // Build a date range fragment for use inside a JOIN ON clause.
     // Used for LEFT JOINs where a WHERE clause would incorrectly
-    // eliminate rows with no matching orders (e.g. locations with
+    // eliminate rows with no matching orders (locations with
     // zero orders, accounts with zero orders in the date range).
-    // ----------------------------------------------------------------
     static String dateJoinClause(String start, String end) {
         StringBuilder sb = new StringBuilder();
         if (start != null) {
@@ -73,11 +67,9 @@ public class ManagementUI {
         return sb.toString();
     }
 
-    // ----------------------------------------------------------------
     // Build a WHERE clause fragment for date range on Orders.placed.
     // Used for INNER JOINs where excluding non-matching rows is correct
-    // (e.g. Top-Selling Items only cares about items that were ordered).
-    // ----------------------------------------------------------------
+    // (Top-Selling Items only cares about items that were ordered).
     static String dateWhereClause(String start, String end, boolean hasWhere) {
         StringBuilder sb = new StringBuilder();
         if (start != null) {
@@ -92,9 +84,7 @@ public class ManagementUI {
         return sb.toString();
     }
 
-    // ----------------------------------------------------------------
-    // 1. Sales Report by Location
-    // ----------------------------------------------------------------
+    // Sales Report by Location
     static void salesReport(Connection conn) throws SQLException {
         RestaurantApp.clearScreen();
         System.out.println("\n--- Sales Report by Location ---");
@@ -102,8 +92,8 @@ public class ManagementUI {
         String[] range = promptDateRange();
         String start = range[0], end = range[1];
 
-        // Revenue uses get_item_price() PL/SQL function to correctly handle
-        // custom item pricing (recursive component sum) alongside standard items.
+        // Revenue uses stored unit_pr values so reports reflect what was
+        // actually paid at checkout, not current menu prices.
         // Date filter goes in the JOIN ON clause so locations with no orders
         // in the date range still appear with ord_count=0 rather than disappearing.
         StringBuilder sql = new StringBuilder(
@@ -115,7 +105,8 @@ public class ManagementUI {
         );
         sql.append(dateJoinClause(start, end));
         sql.append(" LEFT JOIN OrderMenuItem oi ON o.ord_id = oi.ord_id");
-        sql.append(" GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST");
+        sql.append(" GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, l.loc_id ASC");
+
 
         List<String[]> rows = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -163,9 +154,7 @@ public class ManagementUI {
         }
     }
 
-    // ----------------------------------------------------------------
-    // 2. Top-Selling Menu Items
-    // ----------------------------------------------------------------
+    // Top-Selling Menu Items
     static void topSellingItems(Connection conn) throws SQLException {
         RestaurantApp.clearScreen();
         System.out.println("\n--- Top-Selling Menu Items ---");
@@ -191,7 +180,7 @@ public class ManagementUI {
             hasWhere = true;
         }
         sql.append(dateWhereClause(start, end, hasWhere));
-        sql.append(" GROUP BY m.itmid, m.name, m.itmtyp ORDER BY total_qty DESC");
+        sql.append(" GROUP BY m.itmid, m.name, m.itmtyp ORDER BY total_qty DESC, order_count DESC, m.itmid ASC");
 
         List<String[]> rows = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -245,9 +234,7 @@ public class ManagementUI {
         }
     }
 
-    // ----------------------------------------------------------------
     // 3. Customer Activity Report
-    // ----------------------------------------------------------------
     static void customerActivity(Connection conn) throws SQLException {
         RestaurantApp.clearScreen();
         System.out.println("\n--- Customer Activity Report ---");
@@ -266,7 +253,7 @@ public class ManagementUI {
         );
         sql.append(dateJoinClause(start, end));
         sql.append(" GROUP BY a.acc_id, a.f_name, a.l_name, a.email, a.points");
-        sql.append(" ORDER BY ord_count DESC, a.points DESC");
+        sql.append(" ORDER BY ord_count DESC, a.points DESC, a.acc_id ASC");
 
         List<String[]> rows = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
@@ -317,9 +304,7 @@ public class ManagementUI {
         }
     }
 
-    // ----------------------------------------------------------------
     // Print a generic table with given headers, column widths, and rows
-    // ----------------------------------------------------------------
     static void printTable(String[] headers, int[] widths, List<String[]> rows) {
         StringBuilder headerLine = new StringBuilder("  ");
         for (int i = 0; i < headers.length; i++) {
@@ -344,9 +329,7 @@ public class ManagementUI {
         }
     }
 
-    // ----------------------------------------------------------------
     // Print the active date range as a subtitle line
-    // ----------------------------------------------------------------
     static void printDateRange(String start, String end) {
         if (start != null || end != null) {
             String s = start != null ? start : "beginning";
@@ -358,9 +341,7 @@ public class ManagementUI {
         System.out.println();
     }
 
-    // ----------------------------------------------------------------
     // Show the location table and return a chosen loc_id, or null for all
-    // ----------------------------------------------------------------
     static Integer promptLocationFilter(Connection conn) throws SQLException {
         System.out.println("\n  Location filter (press Enter to show all locations):");
         System.out.println();
