@@ -29,11 +29,13 @@ public class LocationManagerUI {
             boolean any = false;
             while (rs.next()) {
                 any = true;
-                System.out.printf("  %-6d %-25s %s %s%n",
+                System.out.printf(
+                    "  %-6d %-25s %s %s%n",
                     rs.getInt("loc_id"),
                     rs.getString("city") + ", " + rs.getString("state"),
                     rs.getString("st_num"),
-                    rs.getString("stname"));
+                    rs.getString("stname")
+                );
             }
             if (!any) {
                 System.out.println("No locations found.");
@@ -74,14 +76,20 @@ public class LocationManagerUI {
             if (choice == null) continue;
 
             switch (choice.trim()) {
-                case "1": viewOrders(conn, locId);           break;
-                case "2": managePriceOverrides(conn, locId); break;
+                case "1":
+                    viewOrders(conn, locId);
+                    break;
+                case "2":
+                    managePriceOverrides(conn, locId);
+                    break;
                 case "3":
                     int newLoc = selectLocation(conn);
                     if (newLoc != -1) locId = newLoc;
                     break;
-                case "4": return;
-                default:  System.out.println("Invalid option.");
+                case "4":
+                    return;
+                default:
+                    System.out.println("Invalid option.");
             }
         }
     }
@@ -101,8 +109,8 @@ public class LocationManagerUI {
             "GROUP BY o.ord_id, o.placed, o.ordtyp, a.f_name, a.l_name " +
             "ORDER BY o.placed DESC, o.ord_id DESC";
 
-        List<String[]> rows     = new ArrayList<>();
-        List<Integer>  orderIds = new ArrayList<>();
+        List<String[]> rows = new ArrayList<>();
+        List<Integer> orderIds = new ArrayList<>();
 
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setInt(1, locId);
@@ -112,16 +120,22 @@ public class LocationManagerUI {
                 int ordId = rs.getInt("ord_id");
                 orderIds.add(ordId);
 
-                String type     = rs.getString("ordtyp").equals("O") ? "Online" : "In-person";
-                String placed   = rs.getTimestamp("placed").toString().substring(0, 16);
-                String customer = rs.getString("f_name") != null
-                    ? rs.getString("f_name") + " " + rs.getString("l_name")
-                    : "Guest";
+                String type = rs.getString("ordtyp").equals("O") ? "Online" : "In-person";
+                String placed = rs.getTimestamp("placed").toString().substring(0, 16);
+                String customer =
+                    rs.getString("f_name") != null
+                        ? rs.getString("f_name") + " " + rs.getString("l_name")
+                        : "Guest";
 
-                rows.add(new String[]{
-                    String.valueOf(ordId), placed, type, customer,
-                    String.valueOf(rs.getInt("total_qty"))
-                });
+                rows.add(
+                    new String[] {
+                        String.valueOf(ordId),
+                        placed,
+                        type,
+                        customer,
+                        String.valueOf(rs.getInt("total_qty")),
+                    }
+                );
             }
         }
 
@@ -133,9 +147,10 @@ public class LocationManagerUI {
             return;
         }
 
-        String[] headers = {"Order #", "Placed", "Type", "Customer", "Items"};
-        int[]    widths  = {8, 17, 10, 22, 5};
-        int page = 0, pageSize = 12;
+        String[] headers = { "Order #", "Placed", "Type", "Customer", "Items" };
+        int[] widths = { 8, 17, 10, 22, 5 };
+        int page = 0,
+            pageSize = 12;
 
         while (true) {
             RestaurantApp.clearScreen();
@@ -152,7 +167,9 @@ public class LocationManagerUI {
 
             if (input.equals("B")) {
                 return;
-            } else if (input.equals("N") && RestaurantApp.hasNextPage(page, rows.size(), pageSize)) {
+            } else if (
+                input.equals("N") && RestaurantApp.hasNextPage(page, rows.size(), pageSize)
+            ) {
                 page++;
             } else if (input.equals("P") && page > 0) {
                 page--;
@@ -189,16 +206,22 @@ public class LocationManagerUI {
             ps.setInt(1, ordId);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                String customer = rs.getString("f_name") != null
-                    ? rs.getString("f_name") + " " + rs.getString("l_name")
-                      + " (" + rs.getString("email") + ")"
-                    : "Guest";
-                String type   = rs.getString("ordtyp").equals("O") ? "Online" : "In-person";
+                String customer =
+                    rs.getString("f_name") != null
+                        ? rs.getString("f_name") +
+                          " " +
+                          rs.getString("l_name") +
+                          " (" +
+                          rs.getString("email") +
+                          ")"
+                        : "Guest";
+                String type = rs.getString("ordtyp").equals("O") ? "Online" : "In-person";
                 String placed = rs.getTimestamp("placed").toString().substring(0, 16);
-                String card   = rs.getString("cc_num");
-                String cardDisplay = card != null
-                    ? "**** **** **** " + card.substring(Math.max(0, card.length() - 4))
-                    : "(card removed)";
+                String card = rs.getString("cc_num");
+                String cardDisplay =
+                    card != null
+                        ? "**** **** **** " + card.substring(Math.max(0, card.length() - 4))
+                        : "(card removed)";
 
                 System.out.println("  Customer : " + customer);
                 System.out.println("  Type     : " + type);
@@ -222,22 +245,27 @@ public class LocationManagerUI {
             ps.setInt(1, ordId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                int    qty      = rs.getInt("qty");
-                double unitPr   = rs.getDouble("unit_pr");
+                int qty = rs.getInt("qty");
+                double unitPr = rs.getDouble("unit_pr");
                 double lineTotal = unitPr * qty;
                 subtotal += lineTotal;
 
-                System.out.printf("  %-6d %-35s %-5d %10s%n",
+                System.out.printf(
+                    "  %-6d %-35s %-5d %10s%n",
                     rs.getInt("itmid"),
                     rs.getString("name"),
                     qty,
-                    String.format("$%.2f", lineTotal));
+                    String.format("$%.2f", lineTotal)
+                );
             }
         }
 
         RestaurantApp.divider();
-        System.out.printf("  %-48s %10s%n",
-            "Subtotal (excl. tax):", String.format("$%.2f", subtotal));
+        System.out.printf(
+            "  %-48s %10s%n",
+            "Subtotal (excl. tax):",
+            String.format("$%.2f", subtotal)
+        );
 
         RestaurantApp.readLine("\nPress Enter to go back...");
     }
@@ -252,8 +280,8 @@ public class LocationManagerUI {
             System.out.println("  (Overrides replace the national price at this location only)\n");
 
             List<String[]> rows = fetchOverrides(conn, locId);
-            String[] headers = {"Item ID", "Name", "National Price", "Local Price"};
-            int[]    widths  = {7, 35, 14, 11};
+            String[] headers = { "Item ID", "Name", "National Price", "Local Price" };
+            int[] widths = { 7, 35, 14, 11 };
 
             if (rows.isEmpty()) {
                 System.out.println("  No price overrides set for this location.");
@@ -272,10 +300,16 @@ public class LocationManagerUI {
             if (choice == null) continue;
 
             switch (choice.trim().toUpperCase()) {
-                case "A": addOverride(conn, locId);    break;
-                case "R": removeOverride(conn, locId); break;
-                case "B": return;
-                default:  System.out.println("Invalid option.");
+                case "A":
+                    addOverride(conn, locId);
+                    break;
+                case "R":
+                    removeOverride(conn, locId);
+                    break;
+                case "B":
+                    return;
+                default:
+                    System.out.println("Invalid option.");
             }
         }
     }
@@ -291,15 +325,18 @@ public class LocationManagerUI {
             ps.setInt(1, locId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                String natPr = rs.getObject("nat_pr") != null
-                    ? String.format("$%.2f", rs.getDouble("nat_pr"))
-                    : "varies";
-                rows.add(new String[]{
-                    String.valueOf(rs.getInt("itmid")),
-                    rs.getString("name"),
-                    natPr,
-                    String.format("$%.2f", rs.getDouble("loc_pr"))
-                });
+                String natPr =
+                    rs.getObject("nat_pr") != null
+                        ? String.format("$%.2f", rs.getDouble("nat_pr"))
+                        : "varies";
+                rows.add(
+                    new String[] {
+                        String.valueOf(rs.getInt("itmid")),
+                        rs.getString("name"),
+                        natPr,
+                        String.format("$%.2f", rs.getDouble("loc_pr")),
+                    }
+                );
             }
         }
         return rows;
@@ -322,20 +359,29 @@ public class LocationManagerUI {
             ps.setInt(1, locId);
             ResultSet rs = ps.executeQuery();
 
-            System.out.printf("  %-6s %-35s %-12s %s%n", "ID", "Name", "Nat. Price", "Current Override");
+            System.out.printf(
+                "  %-6s %-35s %-12s %s%n",
+                "ID",
+                "Name",
+                "Nat. Price",
+                "Current Override"
+            );
             RestaurantApp.divider();
 
             boolean any = false;
             while (rs.next()) {
                 any = true;
-                String existing = rs.getObject("existing") != null
-                    ? String.format("$%.2f", rs.getDouble("existing"))
-                    : "(none)";
-                System.out.printf("  %-6d %-35s %-12s %s%n",
+                String existing =
+                    rs.getObject("existing") != null
+                        ? String.format("$%.2f", rs.getDouble("existing"))
+                        : "(none)";
+                System.out.printf(
+                    "  %-6d %-35s %-12s %s%n",
                     rs.getInt("itmid"),
                     rs.getString("name"),
                     String.format("$%.2f", rs.getDouble("nat_pr")),
-                    existing);
+                    existing
+                );
             }
             if (!any) {
                 System.out.println("  No standard items available.");
@@ -347,7 +393,8 @@ public class LocationManagerUI {
         int itemId = RestaurantApp.readInt("\nEnter item ID (0 to cancel): ");
         if (itemId == -1) return;
 
-        String chkSql = "SELECT name FROM MenuItem WHERE itmid = ? AND itmtyp = 'S' AND active = 'Y'";
+        String chkSql =
+            "SELECT name FROM MenuItem WHERE itmid = ? AND itmtyp = 'S' AND active = 'Y'";
         String itemName = null;
         try (PreparedStatement ps = conn.prepareStatement(chkSql)) {
             ps.setInt(1, itemId);
@@ -364,7 +411,8 @@ public class LocationManagerUI {
         double newPrice = -1;
         while (newPrice < 0) {
             String priceInput = RestaurantApp.readLine(
-                "New local price for \"" + itemName + "\" (or press Enter to cancel): $");
+                "New local price for \"" + itemName + "\" (or press Enter to cancel): $"
+            );
             if (priceInput == null || priceInput.trim().isEmpty()) return;
             try {
                 double parsed = Double.parseDouble(priceInput.trim());
@@ -410,7 +458,12 @@ public class LocationManagerUI {
 
         conn.commit();
         System.out.println(
-            "  \"" + itemName + "\" is now $" + String.format("%.2f", newPrice) + " at this location.");
+            "  \"" +
+                itemName +
+                "\" is now $" +
+                String.format("%.2f", newPrice) +
+                " at this location."
+        );
         RestaurantApp.readLine("  Press Enter to continue...");
     }
 
@@ -428,8 +481,8 @@ public class LocationManagerUI {
             return;
         }
 
-        String[] headers = {"Item ID", "Name", "National Price", "Local Price"};
-        int[]    widths  = {7, 35, 14, 11};
+        String[] headers = { "Item ID", "Name", "National Price", "Local Price" };
+        int[] widths = { 7, 35, 14, 11 };
         ManagementUI.printTable(headers, widths, overrides);
 
         int itemId = RestaurantApp.readInt("\nEnter item ID to remove override (0 to cancel): ");
@@ -452,7 +505,8 @@ public class LocationManagerUI {
         }
 
         String confirm = RestaurantApp.readLine(
-            "  Remove override for \"" + itemName + "\"? Reverts to national price. (y/n): ");
+            "  Remove override for \"" + itemName + "\"? Reverts to national price. (y/n): "
+        );
         if (confirm == null || !confirm.trim().equalsIgnoreCase("y")) {
             System.out.println("  Cancelled.");
             RestaurantApp.readLine("  Press Enter to continue...");
@@ -467,8 +521,7 @@ public class LocationManagerUI {
         }
 
         conn.commit();
-        System.out.println(
-            "  Override removed. \"" + itemName + "\" now uses the national price.");
+        System.out.println("  Override removed. \"" + itemName + "\" now uses the national price.");
         RestaurantApp.readLine("  Press Enter to continue...");
     }
 

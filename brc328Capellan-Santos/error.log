@@ -335,3 +335,17 @@ https://docs.oracle.com/error-help/db/ora-17003/
 	at RestaurantApp.runApp(RestaurantApp.java:56)
 	at RestaurantApp.main(RestaurantApp.java:34)
 
+[Fri May 01 16:24:57 EDT 2026] top-level
+java.sql.SQLException: ORA-17003: Invalid column index
+https://docs.oracle.com/error-help/db/ora-17003/
+	at oracle.jdbc.driver.OraclePreparedStatement.setFormOfUseInternal(OraclePreparedStatement.java:11915)
+	at oracle.jdbc.driver.OraclePreparedStatement.setFormOfUseInternal(OraclePreparedStatement.java:11896)
+	at oracle.jdbc.driver.OraclePreparedStatement.setString(OraclePreparedStatement.java:5609)
+	at oracle.jdbc.driver.OraclePreparedStatementWrapper.setString(OraclePreparedStatementWrapper.java:263)
+	at CustomerUI.pickBaseItem(CustomerUI.java:1310)
+	at CustomerUI.buildCustomItem(CustomerUI.java:1170)
+	at CustomerUI.customerHome(CustomerUI.java:208)
+	at CustomerUI.run(CustomerUI.java:33)
+	at RestaurantApp.runApp(RestaurantApp.java:55)
+	at RestaurantApp.main(RestaurantApp.java:32)
+

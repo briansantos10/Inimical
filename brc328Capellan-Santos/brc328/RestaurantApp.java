@@ -7,13 +7,13 @@ import java.util.List;
 import java.util.Scanner;
 
 public class RestaurantApp {
+
     static final String DBURL = "jdbc:oracle:thin:@//rocordb01.cse.lehigh.edu:1522/cse241pdb";
     static Scanner scanner = new Scanner(System.in);
     static Console console = System.console();
 
     public static void main(String[] args) {
-        
-        String uid  = readLine("Enter Oracle user id: ");
+        String uid = readLine("Enter Oracle user id: ");
         String pass = readPassword("Enter Oracle password for " + uid + ": ");
         Connection conn = null;
 
@@ -22,7 +22,7 @@ public class RestaurantApp {
                 conn = DriverManager.getConnection(DBURL, uid, pass);
             } catch (SQLException se) {
                 System.err.println("Login failed: " + se.getMessage());
-                uid  = readLine("Enter Oracle user id: ");
+                uid = readLine("Enter Oracle user id: ");
                 pass = readPassword("Enter Oracle password for " + uid + ": ");
             }
         }
@@ -51,9 +51,15 @@ public class RestaurantApp {
             String choice = readLine("Select: ");
 
             switch (choice == null ? "" : choice.trim()) {
-                case "1": CustomerUI.run(conn);         break;
-                case "2": ManagementUI.run(conn);       break;
-                case "3": LocationManagerUI.run(conn);  break;
+                case "1":
+                    CustomerUI.run(conn);
+                    break;
+                case "2":
+                    ManagementUI.run(conn);
+                    break;
+                case "3":
+                    LocationManagerUI.run(conn);
+                    break;
                 case "4":
                     System.out.println("Goodbye!");
                     return;
@@ -123,7 +129,7 @@ public class RestaurantApp {
     static void clearScreen() {
         try {
             // Pause for 1500 milliseconds (1.5 seconds)
-            Thread.sleep(1500); 
+            Thread.sleep(1500);
         } catch (InterruptedException e) {
             // Restore interrupted state if the sleep is interrupted
             Thread.currentThread().interrupt();
@@ -134,8 +140,10 @@ public class RestaurantApp {
 
     // Logs an error to error.log without showing it to the user
     static void logError(String context, Exception e) {
-        try (java.io.FileWriter fw = new java.io.FileWriter("error.log", true);
-             java.io.PrintWriter pw = new java.io.PrintWriter(fw)) {
+        try (
+            java.io.FileWriter fw = new java.io.FileWriter("error.log", true);
+            java.io.PrintWriter pw = new java.io.PrintWriter(fw)
+        ) {
             pw.println("[" + new java.util.Date() + "] " + context);
             e.printStackTrace(pw);
             pw.println();
@@ -149,7 +157,7 @@ public class RestaurantApp {
     // Returns a sublist for the given page (0-indexed)
     static <T> List<T> getPage(List<T> items, int page, int pageSize) {
         int from = page * pageSize;
-        int to   = Math.min(from + pageSize, items.size());
+        int to = Math.min(from + pageSize, items.size());
         if (from >= items.size()) return new ArrayList<>();
         return items.subList(from, to);
     }
@@ -164,10 +172,14 @@ public class RestaurantApp {
         int totalPages = (int) Math.ceil((double) totalItems / pageSize);
         System.out.println();
         divider();
-        System.out.printf("  Page %d of %d  (%d items total)%n",
-            page + 1, Math.max(1, totalPages), totalItems);
+        System.out.printf(
+            "  Page %d of %d  (%d items total)%n",
+            page + 1,
+            Math.max(1, totalPages),
+            totalItems
+        );
         StringBuilder controls = new StringBuilder("  ");
-        if (page > 0)                                controls.append("[P] Prev  ");
+        if (page > 0) controls.append("[P] Prev  ");
         if (hasNextPage(page, totalItems, pageSize)) controls.append("[N] Next  ");
         controls.append("[B] Back");
         System.out.println(controls);

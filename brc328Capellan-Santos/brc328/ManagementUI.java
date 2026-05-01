@@ -21,11 +21,19 @@ public class ManagementUI {
             if (choice == null) continue;
 
             switch (choice.trim()) {
-                case "1": salesReport(conn);      break;
-                case "2": topSellingItems(conn);  break;
-                case "3": customerActivity(conn); break;
-                case "4": return;
-                default:  System.out.println("Invalid option.");
+                case "1":
+                    salesReport(conn);
+                    break;
+                case "2":
+                    topSellingItems(conn);
+                    break;
+                case "3":
+                    customerActivity(conn);
+                    break;
+                case "4":
+                    return;
+                default:
+                    System.out.println("Invalid option.");
             }
         }
     }
@@ -35,10 +43,10 @@ public class ManagementUI {
     static String[] promptDateRange() {
         System.out.println("\n  Date range filter (press Enter to skip for all-time):");
         String start = RestaurantApp.readLine("  Start date (YYYY-MM-DD): ");
-        String end   = RestaurantApp.readLine("  End date   (YYYY-MM-DD): ");
+        String end = RestaurantApp.readLine("  End date   (YYYY-MM-DD): ");
 
         start = (start == null || start.trim().isEmpty()) ? null : start.trim();
-        end   = (end   == null || end.trim().isEmpty())   ? null : end.trim();
+        end = (end == null || end.trim().isEmpty()) ? null : end.trim();
 
         if (start != null && !start.matches("\\d{4}-\\d{2}-\\d{2}")) {
             System.out.println("  Warning: start date format not recognised -- ignoring.");
@@ -49,7 +57,7 @@ public class ManagementUI {
             end = null;
         }
 
-        return new String[]{start, end};
+        return new String[] { start, end };
     }
 
     // Build a date range fragment for use inside a JOIN ON clause.
@@ -90,7 +98,8 @@ public class ManagementUI {
         System.out.println("\n--- Sales Report by Location ---");
 
         String[] range = promptDateRange();
-        String start = range[0], end = range[1];
+        String start = range[0],
+            end = range[1];
 
         // Revenue uses stored unit_pr values so reports reflect what was
         // actually paid at checkout, not current menu prices.
@@ -98,42 +107,46 @@ public class ManagementUI {
         // in the date range still appear with ord_count=0 rather than disappearing.
         StringBuilder sql = new StringBuilder(
             "SELECT l.loc_id, l.city, l.state, " +
-            "COUNT(DISTINCT o.ord_id) AS ord_count, " +
-            "SUM(oi.unit_pr * oi.qty) AS revenue " +
-            "FROM Location l " +
-            "LEFT JOIN Orders o ON l.loc_id = o.loc_id"
+                "COUNT(DISTINCT o.ord_id) AS ord_count, " +
+                "SUM(oi.unit_pr * oi.qty) AS revenue " +
+                "FROM Location l " +
+                "LEFT JOIN Orders o ON l.loc_id = o.loc_id"
         );
         sql.append(dateJoinClause(start, end));
         sql.append(" LEFT JOIN OrderMenuItem oi ON o.ord_id = oi.ord_id");
-        sql.append(" GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, l.loc_id ASC");
-
+        sql.append(
+            " GROUP BY l.loc_id, l.city, l.state ORDER BY revenue DESC NULLS LAST, l.loc_id ASC"
+        );
 
         List<String[]> rows = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             int idx = 1;
             if (start != null) ps.setString(idx++, start);
-            if (end   != null) ps.setString(idx++, end);
+            if (end != null) ps.setString(idx++, end);
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
-                int     ordCount = rs.getInt("ord_count");
-                double  revenue  = rs.getDouble("revenue");
-                boolean noRev    = rs.wasNull() || revenue == 0;
-                double  avg      = (ordCount > 0 && !noRev) ? revenue / ordCount : 0;
+                int ordCount = rs.getInt("ord_count");
+                double revenue = rs.getDouble("revenue");
+                boolean noRev = rs.wasNull() || revenue == 0;
+                double avg = (ordCount > 0 && !noRev) ? revenue / ordCount : 0;
 
-                rows.add(new String[]{
-                    String.valueOf(rs.getInt("loc_id")),
-                    rs.getString("city") + ", " + rs.getString("state"),
-                    String.valueOf(ordCount),
-                    noRev ? "$0.00" : String.format("$%.2f", revenue),
-                    (ordCount > 0 && !noRev) ? String.format("$%.2f", avg) : "-"
-                });
+                rows.add(
+                    new String[] {
+                        String.valueOf(rs.getInt("loc_id")),
+                        rs.getString("city") + ", " + rs.getString("state"),
+                        String.valueOf(ordCount),
+                        noRev ? "$0.00" : String.format("$%.2f", revenue),
+                        (ordCount > 0 && !noRev) ? String.format("$%.2f", avg) : "-",
+                    }
+                );
             }
         }
 
-        String[] headers = {"ID", "Location", "Orders", "Revenue", "Avg Order"};
-        int[]    widths  = {4, 22, 7, 12, 10};
-        int page = 0, pageSize = 10;
+        String[] headers = { "ID", "Location", "Orders", "Revenue", "Avg Order" };
+        int[] widths = { 4, 22, 7, 12, 10 };
+        int page = 0,
+            pageSize = 10;
 
         while (true) {
             RestaurantApp.clearScreen();
@@ -148,9 +161,11 @@ public class ManagementUI {
             if (input == null) continue;
             input = input.trim().toUpperCase();
 
-            if      (input.equals("B"))                                                    return;
-            else if (input.equals("N") && RestaurantApp.hasNextPage(page, rows.size(), pageSize)) page++;
-            else if (input.equals("P") && page > 0)                                        page--;
+            if (input.equals("B")) return;
+            else if (
+                input.equals("N") && RestaurantApp.hasNextPage(page, rows.size(), pageSize)
+            ) page++;
+            else if (input.equals("P") && page > 0) page--;
         }
     }
 
@@ -162,16 +177,17 @@ public class ManagementUI {
         Integer locId = promptLocationFilter(conn);
 
         String[] range = promptDateRange();
-        String start = range[0], end = range[1];
+        String start = range[0],
+            end = range[1];
 
         // INNER JOINs are correct here — we only want items that appear in
         // actual orders, so the date WHERE clause is appropriate.
         StringBuilder sql = new StringBuilder(
             "SELECT m.itmid, m.name, m.itmtyp, " +
-            "SUM(oi.qty) AS total_qty, COUNT(DISTINCT o.ord_id) AS order_count " +
-            "FROM OrderMenuItem oi " +
-            "JOIN MenuItem m ON oi.itmid = m.itmid " +
-            "JOIN Orders o ON oi.ord_id = o.ord_id"
+                "SUM(oi.qty) AS total_qty, COUNT(DISTINCT o.ord_id) AS order_count " +
+                "FROM OrderMenuItem oi " +
+                "JOIN MenuItem m ON oi.itmid = m.itmid " +
+                "JOIN Orders o ON oi.ord_id = o.ord_id"
         );
 
         boolean hasWhere = false;
@@ -180,27 +196,31 @@ public class ManagementUI {
             hasWhere = true;
         }
         sql.append(dateWhereClause(start, end, hasWhere));
-        sql.append(" GROUP BY m.itmid, m.name, m.itmtyp ORDER BY total_qty DESC, order_count DESC, m.itmid ASC");
+        sql.append(
+            " GROUP BY m.itmid, m.name, m.itmtyp ORDER BY total_qty DESC, order_count DESC, m.itmid ASC"
+        );
 
         List<String[]> rows = new ArrayList<>();
         try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             int idx = 1;
             if (locId != null) ps.setInt(idx++, locId);
             if (start != null) ps.setString(idx++, start);
-            if (end   != null) ps.setString(idx++, end);
+            if (end != null) ps.setString(idx++, end);
             ResultSet rs = ps.executeQuery();
 
             int rank = 1;
             while (rs.next()) {
                 String type = rs.getString("itmtyp").equals("S") ? "Std" : "Custom";
-                rows.add(new String[]{
-                    String.valueOf(rank++),
-                    String.valueOf(rs.getInt("itmid")),
-                    rs.getString("name"),
-                    type,
-                    String.valueOf(rs.getInt("total_qty")),
-                    String.valueOf(rs.getInt("order_count"))
-                });
+                rows.add(
+                    new String[] {
+                        String.valueOf(rank++),
+                        String.valueOf(rs.getInt("itmid")),
+                        rs.getString("name"),
+                        type,
+                        String.valueOf(rs.getInt("total_qty")),
+                        String.valueOf(rs.getInt("order_count")),
+                    }
+                );
             }
         }
 
@@ -210,9 +230,10 @@ public class ManagementUI {
             return;
         }
 
-        String[] headers = {"Rank", "ID", "Name", "Type", "Qty Sold", "# Orders"};
-        int[]    widths  = {4, 6, 32, 6, 9, 9};
-        int page = 0, pageSize = 15;
+        String[] headers = { "Rank", "ID", "Name", "Type", "Qty Sold", "# Orders" };
+        int[] widths = { 4, 6, 32, 6, 9, 9 };
+        int page = 0,
+            pageSize = 15;
 
         while (true) {
             RestaurantApp.clearScreen();
@@ -228,9 +249,11 @@ public class ManagementUI {
             if (input == null) continue;
             input = input.trim().toUpperCase();
 
-            if      (input.equals("B"))                                                    return;
-            else if (input.equals("N") && RestaurantApp.hasNextPage(page, rows.size(), pageSize)) page++;
-            else if (input.equals("P") && page > 0)                                        page--;
+            if (input.equals("B")) return;
+            else if (
+                input.equals("N") && RestaurantApp.hasNextPage(page, rows.size(), pageSize)
+            ) page++;
+            else if (input.equals("P") && page > 0) page--;
         }
     }
 
@@ -240,16 +263,17 @@ public class ManagementUI {
         System.out.println("\n--- Customer Activity Report ---");
 
         String[] range = promptDateRange();
-        String start = range[0], end = range[1];
+        String start = range[0],
+            end = range[1];
 
         // Date filter goes in the JOIN ON clause so accounts with no orders
         // in the date range still appear with ord_count=0 rather than being
         // excluded entirely. A WHERE clause on a LEFT JOIN would eliminate them.
         StringBuilder sql = new StringBuilder(
             "SELECT a.acc_id, a.f_name, a.l_name, a.email, a.points, " +
-            "COUNT(o.ord_id) AS ord_count " +
-            "FROM Account a " +
-            "LEFT JOIN Orders o ON a.acc_id = o.acc_id"
+                "COUNT(o.ord_id) AS ord_count " +
+                "FROM Account a " +
+                "LEFT JOIN Orders o ON a.acc_id = o.acc_id"
         );
         sql.append(dateJoinClause(start, end));
         sql.append(" GROUP BY a.acc_id, a.f_name, a.l_name, a.email, a.points");
@@ -259,19 +283,21 @@ public class ManagementUI {
         try (PreparedStatement ps = conn.prepareStatement(sql.toString())) {
             int idx = 1;
             if (start != null) ps.setString(idx++, start);
-            if (end   != null) ps.setString(idx++, end);
+            if (end != null) ps.setString(idx++, end);
             ResultSet rs = ps.executeQuery();
 
             int rank = 1;
             while (rs.next()) {
-                rows.add(new String[]{
-                    String.valueOf(rank++),
-                    String.valueOf(rs.getInt("acc_id")),
-                    rs.getString("f_name") + " " + rs.getString("l_name"),
-                    rs.getString("email"),
-                    String.valueOf(rs.getInt("ord_count")),
-                    String.valueOf(rs.getInt("points"))
-                });
+                rows.add(
+                    new String[] {
+                        String.valueOf(rank++),
+                        String.valueOf(rs.getInt("acc_id")),
+                        rs.getString("f_name") + " " + rs.getString("l_name"),
+                        rs.getString("email"),
+                        String.valueOf(rs.getInt("ord_count")),
+                        String.valueOf(rs.getInt("points")),
+                    }
+                );
             }
         }
 
@@ -281,9 +307,10 @@ public class ManagementUI {
             return;
         }
 
-        String[] headers = {"Rank", "ID", "Name", "Email", "Orders", "Points"};
-        int[]    widths  = {4, 6, 22, 28, 7, 7};
-        int page = 0, pageSize = 12;
+        String[] headers = { "Rank", "ID", "Name", "Email", "Orders", "Points" };
+        int[] widths = { 4, 6, 22, 28, 7, 7 };
+        int page = 0,
+            pageSize = 12;
 
         while (true) {
             RestaurantApp.clearScreen();
@@ -298,9 +325,11 @@ public class ManagementUI {
             if (input == null) continue;
             input = input.trim().toUpperCase();
 
-            if      (input.equals("B"))                                                    return;
-            else if (input.equals("N") && RestaurantApp.hasNextPage(page, rows.size(), pageSize)) page++;
-            else if (input.equals("P") && page > 0)                                        page--;
+            if (input.equals("B")) return;
+            else if (
+                input.equals("N") && RestaurantApp.hasNextPage(page, rows.size(), pageSize)
+            ) page++;
+            else if (input.equals("P") && page > 0) page--;
         }
     }
 
@@ -333,7 +362,7 @@ public class ManagementUI {
     static void printDateRange(String start, String end) {
         if (start != null || end != null) {
             String s = start != null ? start : "beginning";
-            String e = end   != null ? end   : "today";
+            String e = end != null ? end : "today";
             System.out.println("  Period: " + s + " to " + e);
         } else {
             System.out.println("  Period: All-time");
@@ -352,11 +381,13 @@ public class ManagementUI {
             System.out.printf("  %-6s %-25s %s%n", "ID", "City", "Address");
             RestaurantApp.divider();
             while (rs.next()) {
-                System.out.printf("  %-6d %-25s %s %s%n",
+                System.out.printf(
+                    "  %-6d %-25s %s %s%n",
                     rs.getInt("loc_id"),
                     rs.getString("city") + ", " + rs.getString("state"),
                     rs.getString("st_num"),
-                    rs.getString("stname"));
+                    rs.getString("stname")
+                );
             }
         }
 
