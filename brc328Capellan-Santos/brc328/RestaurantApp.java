@@ -125,6 +125,14 @@ public class RestaurantApp {
 
     // Clears the terminal screen using ANSI escape codes
     static void clearScreen() {
+        // Maybe remove all "   Enter to continue..." to instead replace it with a timeout?
+        try {
+            // Pause for 1500 milliseconds (1.5 seconds)
+            Thread.sleep(1500); 
+        } catch (InterruptedException e) {
+            // Restore interrupted state if the sleep is interrupted
+            Thread.currentThread().interrupt();
+        }
         System.out.print("\033[H\033[2J");
         System.out.flush();
     }

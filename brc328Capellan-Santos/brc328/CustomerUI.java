@@ -73,6 +73,7 @@ public class CustomerUI {
 
             if (!rs.next()) {
                 System.out.println("No account found with that email.");
+                RestaurantApp.readLine("  Press Enter to go continue...");
                 return false;
             }
 
@@ -94,6 +95,7 @@ public class CustomerUI {
         String firstName = RestaurantApp.readLine("First name: ");
         if (firstName == null || firstName.trim().isEmpty()) {
             System.out.println("Account creation cancelled.");
+            RestaurantApp.readLine("  Press Enter to continue...");
             return false;
         }
 
@@ -102,12 +104,14 @@ public class CustomerUI {
         String lastName = RestaurantApp.readLine("Last name: ");
         if (lastName == null || lastName.trim().isEmpty()) {
             System.out.println("Account creation cancelled.");
+            RestaurantApp.readLine("  Press Enter to continue...");
             return false;
         }
 
         String email = RestaurantApp.readLine("Email: ");
         if (email == null || email.trim().isEmpty()) {
             System.out.println("Account creation cancelled.");
+            RestaurantApp.readLine("  Press Enter to continue...");
             return false;
         }
 
@@ -117,6 +121,7 @@ public class CustomerUI {
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
                 System.out.println("An account with that email already exists.");
+                RestaurantApp.readLine("  Press Enter to go continue...");
                 return false;
             }
         }
@@ -124,6 +129,7 @@ public class CustomerUI {
         String phone = RestaurantApp.readLine("Phone number: ");
         if (phone == null || phone.trim().isEmpty()) {
             System.out.println("Account creation cancelled.");
+            RestaurantApp.readLine("  Press Enter to continue...");
             return false;
         }
 
@@ -203,10 +209,11 @@ public class CustomerUI {
                     break;
                 case "5":
                     session.logout();
-                    System.out.println("Logged out.");
+                    System.out.println("Logging out.");
                     return;
                 default:
                     System.out.println("Invalid option.");
+                    RestaurantApp.readLine("  Press Enter to continue...");
             }
         }
     }
@@ -415,16 +422,19 @@ public class CustomerUI {
                     int idx = Integer.parseInt(numPart) - 1;
                     if (idx < 0 || idx >= items.size()) {
                         System.out.println("Invalid item number.");
+                        RestaurantApp.readLine("  Press Enter to continue...");
                     } else {
                         String removed = items.get(idx).itemName;
                         items.remove(idx);
                         System.out.println("Removed: " + removed);
+                        RestaurantApp.readLine("  Press Enter to continue...");
                     }
                 } catch (NumberFormatException e) {
                     System.out.println("Format: R <number>  e.g. R 2");
                 }
             } else {
                 System.out.println("Invalid option.");
+                RestaurantApp.readLine("  Press Enter to continue...");
             }
         }
     }
@@ -448,7 +458,9 @@ public class CustomerUI {
       }
 
       if (customOnly) {
-          sql.append("WHERE m.itmtyp = 'C' ");
+          sql.append("WHERE m.itmtyp = 'C' AND m.active = 'Y' ");
+      } else {
+          sql.append("WHERE m.active = 'Y' ");
       }
 
       sql.append("ORDER BY m.itmtyp ASC, m.itmid ASC");
@@ -533,7 +545,7 @@ public class CustomerUI {
                 continue;
             }
 
-            String checkSql = "SELECT name FROM MenuItem WHERE itmid = ?";
+            String checkSql = "SELECT name FROM MenuItem WHERE itmid = ? AND active = 'Y'";
             try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
                 ps.setInt(1, itemId);
                 ResultSet rs = ps.executeQuery();
@@ -622,12 +634,14 @@ public class CustomerUI {
             }
         }
 
-        String insertItem = "INSERT INTO OrderMenuItem (ord_id, itmid, qty) VALUES (?, ?, ?)";
+        String insertItem = "INSERT INTO OrderMenuItem (ord_id, itmid, qty, unit_pr) VALUES (?, ?, ?, ?)";
         try (PreparedStatement ps = conn.prepareStatement(insertItem)) {
             for (Session.CartItem ci : session.cart) {
+                double unitPr = getItemPrice(conn, ci.itemId, session.locId);
                 ps.setInt(1, newOrdId);
                 ps.setInt(2, ci.itemId);
                 ps.setInt(3, ci.qty);
+                ps.setDouble(4, unitPr);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -949,8 +963,7 @@ public class CustomerUI {
 
         // Line items using get_item_price() for correct custom item pricing
         String itemSql =
-            "SELECT m.itmid, m.name, oi.qty, " +
-            "get_item_price(m.itmid, ?) AS unit_pr " +
+            "SELECT m.itmid, m.name, oi.qty, oi.unit_pr " +
             "FROM OrderMenuItem oi " +
             "JOIN MenuItem m ON oi.itmid = m.itmid " +
             "WHERE oi.ord_id = ?";
@@ -961,8 +974,7 @@ public class CustomerUI {
 
         double subtotal = 0;
         try (PreparedStatement ps = conn.prepareStatement(itemSql)) {
-            ps.setInt(1, locId);
-            ps.setInt(2, ordId);
+            ps.setInt(1, ordId);
             ResultSet rs = ps.executeQuery();
 
             boolean any = false;
@@ -1063,6 +1075,7 @@ public class CustomerUI {
     // ----------------------------------------------------------------
     static void removeCard(Connection conn, String ccNum) throws SQLException {
         String checkSql = "SELECT COUNT(*) FROM Orders WHERE cc_num = ? AND status = 'pending'";
+        // This doesn't actually trigger, but it doesn't hurt to keep.
         try (PreparedStatement ps = conn.prepareStatement(checkSql)) {
             ps.setString(1, ccNum);
             ResultSet rs = ps.executeQuery();
@@ -1072,12 +1085,12 @@ public class CustomerUI {
             }
         }
 
-        String deleteSql = "DELETE FROM CreditCard WHERE cc_num = ?";
-        try (PreparedStatement ps = conn.prepareStatement(deleteSql)) {
-            ps.setString(1, ccNum);
-            ps.executeUpdate();
-            System.out.println("Card removed.");
-        }
+      String updateSql = "UPDATE CreditCard SET acc_id = NULL WHERE cc_num = ?";
+      try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+          ps.setString(1, ccNum);
+          ps.executeUpdate();
+          System.out.println("Card removed.");
+      }
     }
 
     // ================================================================
@@ -1090,7 +1103,8 @@ public class CustomerUI {
 
         // Show user's own custom items
         String myItemsSql =
-            "SELECT itmid, name, crdate FROM MenuItem WHERE cr_acc = ? ORDER BY crdate DESC";
+            "SELECT itmid, name, crdate FROM MenuItem " +
+            "WHERE cr_acc = ? AND active = 'Y' ORDER BY crdate DESC";
         try (PreparedStatement ps = conn.prepareStatement(myItemsSql)) {
             ps.setInt(1, session.accountId);
             ResultSet rs = ps.executeQuery();
@@ -1116,7 +1130,8 @@ public class CustomerUI {
         String allSql =
             "SELECT m.itmid, m.name, a.f_name, a.l_name FROM MenuItem m " +
             "LEFT JOIN Account a ON m.cr_acc = a.acc_id " +
-            "WHERE m.itmtyp = 'C' AND (m.cr_acc != ? OR m.cr_acc IS NULL) ORDER BY m.itmid";
+            "WHERE m.itmtyp = 'C' AND m.active = 'Y' " +
+            "AND (m.cr_acc != ? OR m.cr_acc IS NULL) ORDER BY m.itmid";
         try (PreparedStatement ps = conn.prepareStatement(allSql)) {
             ps.setInt(1, session.accountId);
             ResultSet rs = ps.executeQuery();
@@ -1266,7 +1281,7 @@ public class CustomerUI {
         String label = itmtyp.equals("S") ? "Standard" : "Custom";
         System.out.println("\n  Available " + label + " Items:");
 
-        String sql = "SELECT itmid, name FROM MenuItem WHERE itmtyp = ? ORDER BY itmid";
+        String sql = "SELECT itmid, name FROM MenuItem WHERE itmtyp = ? AND active = 'Y' ORDER BY itmid";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, itmtyp);
             ResultSet rs = ps.executeQuery();
@@ -1289,7 +1304,7 @@ public class CustomerUI {
             int id = RestaurantApp.readInt("Enter item ID to use as base (0 to cancel): ");
             if (id == -1) return -1;
 
-            String check = "SELECT itmid FROM MenuItem WHERE itmid = ? AND itmtyp = ?";
+                  String check = "SELECT itmid, name FROM MenuItem WHERE itmtyp = ? AND active = 'Y' ORDER BY itmid";
             try (PreparedStatement ps = conn.prepareStatement(check)) {
                 ps.setInt(1, id);
                 ps.setString(2, itmtyp);

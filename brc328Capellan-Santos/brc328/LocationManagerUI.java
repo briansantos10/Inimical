@@ -217,8 +217,7 @@ public class LocationManagerUI {
         // and custom items (recursive component sum). Previously COALESCE(loc_pr, nat_pr)
         // returned NULL for custom items, making all custom-item line totals $0.00.
         String itemSql =
-            "SELECT m.itmid, m.name, oi.qty, " +
-            "get_item_price(m.itmid, ?) AS unit_pr " +
+            "SELECT m.itmid, m.name, oi.qty, oi.unit_pr " +
             "FROM OrderMenuItem oi " +
             "JOIN MenuItem m ON oi.itmid = m.itmid " +
             "WHERE oi.ord_id = ?";
@@ -229,8 +228,7 @@ public class LocationManagerUI {
 
         double subtotal = 0;
         try (PreparedStatement ps = conn.prepareStatement(itemSql)) {
-            ps.setInt(1, locId);
-            ps.setInt(2, ordId);
+            ps.setInt(1, ordId);
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
                 int    qty      = rs.getInt("qty");

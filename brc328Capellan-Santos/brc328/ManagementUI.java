@@ -109,7 +109,7 @@ public class ManagementUI {
         StringBuilder sql = new StringBuilder(
             "SELECT l.loc_id, l.city, l.state, " +
             "COUNT(DISTINCT o.ord_id) AS ord_count, " +
-            "SUM(get_item_price(oi.itmid, l.loc_id) * oi.qty) AS revenue " +
+            "SUM(oi.unit_pr * oi.qty) AS revenue " +
             "FROM Location l " +
             "LEFT JOIN Orders o ON l.loc_id = o.loc_id"
         );
