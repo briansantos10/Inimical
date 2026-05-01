@@ -4,9 +4,7 @@ import java.util.List;
 
 public class LocationManagerUI {
 
-    // ----------------------------------------------------------------
     // Entry point called from RestaurantApp
-    // ----------------------------------------------------------------
     public static void run(Connection conn) throws SQLException {
         RestaurantApp.clearScreen();
 
@@ -16,9 +14,7 @@ public class LocationManagerUI {
         locationMenu(conn, locId);
     }
 
-    // ----------------------------------------------------------------
     // Location selection
-    // ----------------------------------------------------------------
     static int selectLocation(Connection conn) throws SQLException {
         RestaurantApp.clearScreen();
         System.out.println("\n--- Select Your Location ---");
@@ -59,9 +55,7 @@ public class LocationManagerUI {
         }
     }
 
-    // ----------------------------------------------------------------
     // Main menu loop for a selected location
-    // ----------------------------------------------------------------
     static void locationMenu(Connection conn, int locId) throws SQLException {
         while (true) {
             String locName = getLocName(conn, locId);
@@ -105,7 +99,7 @@ public class LocationManagerUI {
             "LEFT JOIN Account a ON o.acc_id = a.acc_id " +
             "WHERE o.loc_id = ? " +
             "GROUP BY o.ord_id, o.placed, o.ordtyp, a.f_name, a.l_name " +
-            "ORDER BY o.placed DESC";
+            "ORDER BY o.placed DESC, o.ord_id DESC";
 
         List<String[]> rows     = new ArrayList<>();
         List<Integer>  orderIds = new ArrayList<>();
@@ -178,11 +172,9 @@ public class LocationManagerUI {
         }
     }
 
-    // ----------------------------------------------------------------
-    // Drill-down: show line items for a single order
-    // Uses get_item_price() PL/SQL function for correct custom item
-    // pricing — same fix as ManagementUI sales report.
-    // ----------------------------------------------------------------
+    // Show line items for a single order.
+    // Uses stored unit_pr values so historical order totals reflect
+    // what was actually paid at checkout.
     static void viewOrderDetail(Connection conn, int ordId, int locId) throws SQLException {
         RestaurantApp.clearScreen();
         System.out.println("\n--- Order #" + ordId + " ---");
@@ -204,18 +196,17 @@ public class LocationManagerUI {
                 String type   = rs.getString("ordtyp").equals("O") ? "Online" : "In-person";
                 String placed = rs.getTimestamp("placed").toString().substring(0, 16);
                 String card   = rs.getString("cc_num");
-                String last4  = card.substring(Math.max(0, card.length() - 4));
+                String cardDisplay = card != null
+                    ? "**** **** **** " + card.substring(Math.max(0, card.length() - 4))
+                    : "(card removed)";
 
                 System.out.println("  Customer : " + customer);
                 System.out.println("  Type     : " + type);
                 System.out.println("  Placed   : " + placed);
-                System.out.println("  Card     : **** **** **** " + last4);
+                System.out.println("  Card     : " + cardDisplay);
             }
         }
 
-        // get_item_price() handles both standard items (with local override)
-        // and custom items (recursive component sum). Previously COALESCE(loc_pr, nat_pr)
-        // returned NULL for custom items, making all custom-item line totals $0.00.
         String itemSql =
             "SELECT m.itmid, m.name, oi.qty, oi.unit_pr " +
             "FROM OrderMenuItem oi " +
@@ -289,9 +280,7 @@ public class LocationManagerUI {
         }
     }
 
-    // ----------------------------------------------------------------
     // Fetch current overrides for a location
-    // ----------------------------------------------------------------
     static List<String[]> fetchOverrides(Connection conn, int locId) throws SQLException {
         List<String[]> rows = new ArrayList<>();
         String sql =
@@ -327,14 +316,13 @@ public class LocationManagerUI {
             "SELECT m.itmid, m.name, m.nat_pr, ml.loc_pr AS existing " +
             "FROM MenuItem m " +
             "LEFT JOIN MenuItemLocation ml ON m.itmid = ml.itmid AND ml.loc_id = ? " +
-            "WHERE m.itmtyp = 'S' ORDER BY m.itmid";
+            "WHERE m.itmtyp = 'S' AND m.active = 'Y' ORDER BY m.itmid";
 
         try (PreparedStatement ps = conn.prepareStatement(listSql)) {
             ps.setInt(1, locId);
             ResultSet rs = ps.executeQuery();
 
-            System.out.printf("  %-6s %-35s %-12s %s%n",
-                "ID", "Name", "Nat. Price", "Current Override");
+            System.out.printf("  %-6s %-35s %-12s %s%n", "ID", "Name", "Nat. Price", "Current Override");
             RestaurantApp.divider();
 
             boolean any = false;
@@ -359,7 +347,7 @@ public class LocationManagerUI {
         int itemId = RestaurantApp.readInt("\nEnter item ID (0 to cancel): ");
         if (itemId == -1) return;
 
-        String chkSql = "SELECT name FROM MenuItem WHERE itmid = ? AND itmtyp = 'S'";
+        String chkSql = "SELECT name FROM MenuItem WHERE itmid = ? AND itmtyp = 'S' AND active = 'Y'";
         String itemName = null;
         try (PreparedStatement ps = conn.prepareStatement(chkSql)) {
             ps.setInt(1, itemId);
