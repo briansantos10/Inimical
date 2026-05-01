@@ -32,10 +32,6 @@ public class Session {
         return accountId != null;
     }
 
-    public boolean hasLocation() {
-        return locId != null;
-    }
-
     public void clearCart() {
         cart.clear();
     }
@@ -62,18 +58,6 @@ public class Session {
 
     public boolean cartIsEmpty() {
         return cart.isEmpty();
-    }
-
-    public void printCart() {
-        if (cart.isEmpty()) {
-            System.out.println("  (cart is empty)");
-            return;
-        }
-        System.out.printf("  %-6s %-35s %s%n", "ID", "Item", "Qty");
-        RestaurantApp.divider();
-        for (CartItem ci : cart) {
-            System.out.printf("  %-6d %-35s %d%n", ci.itemId, ci.itemName, ci.qty);
-        }
     }
 
     // ----------------------------------------------------------------
