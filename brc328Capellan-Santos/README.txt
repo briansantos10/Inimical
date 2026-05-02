@@ -32,64 +32,64 @@ the Customer interface, which offers optional account login.
     3. Location Manager
     4. Exit
 
-In a real production system, additional interfaces would include an employee management interface for tracking work hours and shifts, and a live order tracking interface for kitchen staff to view and update the status of pending orders as they are prepared and fulfilled. 
 
 
 SUGGESTED FIRST EXPERIENCE FOR GRADERS:
 
 Option A: Guest order (fastest path)
- Select "1. Customer"
- Select "1. Guest"
- Select any location
- Browse the menu and add an item, such as:
-1001 2
-Press "C" to checkout
- Enter any 16-digit card number, such as:
-1234-5678-9012-1234
- Confirm the order and review the printed receipt
+1. Select "1. Customer"
+2. Select "1. Guest"
+3. Select any location
+4. Browse the menu and add an item, such as:
+      1001 2
+5. Press "C" to checkout
+6. Enter any 16-digit card number, such as:
+      1234-5678-9012-1234
+7.Confirm the order and review the printed receipt
 
 Option B: Logged-in order with existing account
- Select "1. Customer"
-Select "2. Login"
- Use the existing account:
-brc328@lehigh.edu
- Place an order
- Return to the customer home screen
- View order history to confirm the order appears with stored line-item prices
- Open Manage Payment Methods to view or remove saved cards
+1. Select "1. Customer"
+2. Select "2. Login"
+3. Use the existing account:
+      brc328@lehigh.edu
+4. Place an order
+5. Return to the customer home screen
+6. View order history to confirm the order appears with stored line-item prices
+7. Open Manage Payment Methods to view or remove saved cards
 
 Option C: Create and order a custom menu item
- Log in as a registered customer
- Select "4. Build Custom Item"
- Choose a starting point: standard item, custom item, or scratch
- Add at least one inventory ingredient
- Confirm that the new custom item is created
- Place a new order and select "View Custom Items" to order it
+1. Log in as a registered customer
+2. Select "4. Build Custom Item"
+3. Choose a starting point: standard item, custom item, or scratch
+4. Add at least one inventory ingredient
+5. Confirm that the new custom item is created
+6. Place a new order and select "View Custom Items" to order it
 
 
 
 SUGGESTED TESTS / QUERIES FOR GRADERS:
 
 Customer interface:
- Place a guest order and verify that the order completes without account login.
- Place a logged-in order and verify that the receipt shows 10 loyalty points earned.
- Return to Order History and drill into the new order to confirm line totals, tax, and total.
- Remove a saved payment method and verify that past orders remain visible.
+- Place a guest order and verify that the order completes without account login.
+- Place a logged-in order and verify that the receipt shows 10 loyalty points earned.
+- Return to Order History and drill into the new order to confirm line totals, tax, and total.
+- Remove a saved payment method and verify that past orders remain visible.
 
 Management interface:
- Run Sales Report by Location with no date filter to see all-time revenue.
- Run Sales Report with a narrow date range to confirm that locations with zero matching orders still appear with $0.00 revenue.
-Run Top-Selling Menu Items with no location filter, then rerun it with a specific location ID to compare chain-wide and location-specific popularity.
- Run Customer Activity Report to view customers sorted by order count and loyalty points.
+- Run Sales Report by Location with no date filter to see all-time revenue.
+- Run Sales Report with a narrow date range to confirm that locations with zero matching orders still appear with $0.00 revenue.
+- Run Top-Selling Menu Items with no location filter, then rerun it with a specific location ID to compare chain-wide and location-specific popularity.
+- Run Customer Activity Report to view customers sorted by order count and loyalty points.
+- Add a new standard menu item with a national price and at least one inventory ingredient. Return to the Customer interface and verify that the new item appears in menu browsing.
 
 Location Manager interface:
- Select location 1.
- View orders and drill into one order by entering its order number.
- Confirm that order detail shows stored line totals from OrderMenuItem.unit_pr.
- Open Manage Price Overrides.
- Add or update a local price override for a standard item.
- Verify that the override appears in the list.
- Remove the override and confirm the item returns to its national price.
+- Select location 1.
+- View orders and drill into one order by entering its order number.
+- Confirm that order detail shows stored line totals from OrderMenuItem.unit_pr.
+- Open Manage Price Overrides.
+- Add or update a local price override for a standard item.
+- Verify that the override appears in the list.
+- Remove the override and confirm the item returns to its national price.
 
 
 
@@ -166,20 +166,20 @@ Performance note:  In a real system, calling a SQL function per row will be cost
 
 
 V. View / Manage item cart: Enter the item ID and quantity at the prompt:
-> 1001 2
+      > 1001 2
 
 The cart below:
 --- Your Cart ---
   #    ID     Item                                Qty        Total
 -----------------------------
   1    2001   Beast Burger                 1         $20.99
-…. 
+….. 
 
 Shows each item with its line total and a running subtotal before tax. 
 Options: 
-R <#> to remove a specific item (e.g. R 2) 
-C clear the entire cart. 
-B return to the menu
+- R <#> to remove a specific item (e.g. R 2) 
+- C clear the entire cart. 
+- B return to the menu
 
 
 To checkout: Pressing "C" from the menu (with a non-empty cart) shows an order summary with subtotal, the location's tax rate applied, and the final total. The customer confirms, then selects or enters a payment method. All orders require a credit card. Loyalty points cannot be redeemed for payment.
@@ -191,10 +191,11 @@ Logged-in customers can choose from any stored card on their account or enter a 
 Card numbers are accepted as 16 digits with or without dashes. CVC is not collected at entry time; the schema models it as a nullable field since a real payment processor would handle CVC validation externally rather than storing it in the database. Card type is not inferred from the card number, so all cards entered through the application are stored with type 'one-time' regardless of issuer. 
 
 A few consequences of the current card storage design worth noting: 
-If a user enters a new card but declines to save it to their account, the card is still inserted into the database with acc_id = NULL. It will not appear in their saved cards view but the record persists. This means it can be silently reused by a future guest entering the same number.
-If a guest enters a card number already on file under any account, the system silently reuses the existing record without prompting for expiry or disclosing that the number was recognized. Revealing that a card exists in the system would be a privacy concern. Any malicious user could otherwise probe the database by trying card numbers and observing whether the expiry prompt appears. 
+- If a user enters a new card but declines to save it to their account, the card is still inserted into the database with acc_id = NULL. It will not appear in their saved cards view but the record persists. This means it can be silently reused by a future guest entering the same number.
+- If a guest enters a card number already on file under any account, the system silently reuses the existing record without prompting for expiry or disclosing that the number was recognized. Revealing that a card exists in the system would be a privacy concern. Any malicious user could otherwise probe the database by trying card numbers and observing whether the expiry prompt appears. 
 
 On confirmation of an order, a receipt is printed:
+
 =============================
        ORDER CONFIRMED
 =============================
@@ -262,29 +263,34 @@ Custom item pricing is computed recursively. The price is the sum of each invent
 
 Meal types are not assigned to custom items since the choice is subjective. Custom items are available chain-wide immediately upon creation.
 
+
+
 INTERFACE 2: MANAGEMENT
 Accessed from the top-level menu by selecting 2. No additional login required beyond the Oracle password entered at startup. 
 
-The management interface is intentionally read-only. It serves as a reporting and analytics tool for business oversight. Operational tasks such as removing menu items chain-wide, managing inventory, and updating order statuses would belong to a separate operations interface. This separation of concerns between reporting and operations is a design decision.
+The management interface provides reporting and limited menu administration. It serves primarily as a reporting and analytics tool for business oversight, while also allowing management to add standard menu items, update national prices, delete menu items, and restore deleted menu items.
+
+Deleting a menu item is implemented as a soft delete. The item remains in the MenuItem table, but its active flag is set to 'N'. This hides it from customer browsing and ordering while preserving records.
 
 =============================
-  Management Console
+Management Console
 =============================
-  1. Sales Report by Location
-  2. Top-Selling Menu Items
-  3. Customer Activity Report
-  4. Back
+1. Sales Report by Location
+2. Top-Selling Menu Items
+3. Customer Activity Report
+4. Manage Menu Items
+5. Back
 =============================
 
 All three reports share the following behavior:
-Optional date range filter prompted before each report. Enter dates in YYYY-MM-DD format. Either bound may be left out to leave that end open. Press Enter on both to see all-time data.
-Paginated output. Use N and P to navigate pages, B to go back.
+- Optional date range filter prompted before each report. Enter dates in YYYY-MM-DD format. Either bound may be left blank to leave that end open. Press Enter on both to see all-time data.
+- Paginated output. Use N and P to navigate pages, and B to go back.
+    a. Handled in Java after retrieving the result set. For the small sample dataset in this project, this is sufficient. In a production system, pagination would be pushed into SQL using OFFSET/FETCH or ROW_NUMBER() so that only the requested page of rows is returned from the database.
+
 
 Revenue in the sales report is calculated from the stored OrderMenuItem.unit_pr value multiplied by quantity. This ensures that revenue reflects what customers actually paid at checkout, rather than recomputing totals from current menu prices or current location-specific overrides.
 
 1. Sales report by location:  Shows revenue, order count, and average order value per location, ranked by revenue descending.
-
-The date filter is applied in the JOIN ON clause rather than a WHERE clause. This ensures that locations with no orders in the selected period still appear in the report with an order count of zero and $0.00 revenue, rather than being excluded from the results entirely. A WHERE clause on a LEFT JOIN would eliminate those locations, which would give management a misleading picture of which locations are active.
 
 2. Top-Selling Menu Items: Shows ordered menu items ranked by total quantity sold, with item ID, name, type (standard or custom), total quantity sold, and number of distinct orders containing the item.
 
@@ -294,17 +300,13 @@ Items that have never been ordered are excluded because ranking them is not mean
 
 3. Customer Activity Report: Shows all registered accounts sorted by order count, then loyalty points. The displayed rank is a sequential display rank based on the sorted output, so tied customers still receive separate row numbers rather than shared dense or competition ranks.
 
-As with the sales report, the date filter is applied in the JOIN ON clause so that accounts with no orders in the selected period still appear with an order count of zero rather than being excluded. This gives management a complete view of the customer base, not just active customers.
+4. Manage Menu Items: Allows management to add standard menu items, update national prices for active standard items, delete menu items, and restore deleted menu items.
 
+When adding a standard item, management enters the item name, national price, and at least one inventory ingredient. If no ingredients are added, the item creation is rolled back. This ensures that newly added standard items have both a listed price and an ingredient breakdown.
 
+Updating a national price affects future menu browsing and future orders only. Historical order totals and revenue reports remain unchanged because completed orders use the stored OrderMenuItem.unit_pr value.
 
-
-
-
-
-
-
-
+Deleting a menu item does not remove it from the database. Instead, MenuItem.active is set to 'N'. Deleted items are hidden from customer browsing, ordering, and custom item creation, but remain available for historical order details and reports. Deleted items can be restored by setting active back to 'Y'.
 
 
 
@@ -347,10 +349,10 @@ Enter any order number from the list to see its detailed view:
 -----------------------------
   ID     Item                                Qty        Line Total
 -----------------------------
-  1001   Classic Cheeseburger      2          $17.98
-  2001   Beast Burger                    1          $20.99
+  1001   Classic Cheeseburger                 2          $17.98
+  2001   Beast Burger                         1          $20.99
 -----------------------------
-  Subtotal (excl. tax):                                $38.97
+  Subtotal (excl. tax):                                  $38.97
 -----------------------------
 
 Line item totals are calculated using the stored OrderMenuItem.unit_pr. This means the location manager order detail reflects the actual prices paid at checkout, even if menu prices or location-specific overrides change later.
@@ -387,14 +389,6 @@ TRIGGERS:
     Awards 10 loyalty points to the associated account when an order's status
     transitions to 'completed'. Guest orders are skipped because acc_id is NULL.
 
-
-
-
-
-  Note: A trigger to enforce pickup times on online orders was written during
-  development but later dropped. The pickup column was removed from Orders.
-  Online vs. in-person ordering is tracked through Orders.ordtyp.
-
 PL/SQL FUNCTION:
   get_item_price(p_itmid NUMBER, p_loc_id NUMBER) RETURNS NUMBER
 
@@ -414,19 +408,19 @@ PL/SQL FUNCTION:
     OrderMenuItem.unit_pr, and historical views use that stored value.
 
 KEY DESIGN DECISIONS:
-CreditCard.acc_id is nullable. This supports guest and one-time cards that are not tied to any customer account.
- Orders.acc_id is nullable. This allows guest orders to be stored without an account link. If an account is deleted, its past orders remain in the database with acc_id set to NULL.
-Orders.cc_num is nullable and uses ON DELETE SET NULL. If a card is later removed or disassociated, order history remains intact.
- OrderMenuItem.unit_pr stores the price per item at checkout time. This preserves historical accuracy even if national prices, location-specific overrides, or custom item component costs change later.
-MenuItem.active is a soft-delete flag. Items can be hidden from normal customer browsing and ordering without being physically removed from the database. This allows historical orders to continue referencing the original menu item.
-MenuItemContains is a self-referential table on MenuItem. contid is the container item and compid is the contained item. This supports nested custom items.
- ON DELETE CASCADE is used where child records are meaningless without the parent, such as meal type rows without a menu item or order line items without an order.
-ON DELETE SET NULL is used where the historical record still has value even if the referenced parent is removed or disassociated, such as orders tied to accounts, orders tied to credit cards, and order line items tied to menu items.
+- CreditCard.acc_id is nullable. This supports guest and one-time cards that are not tied to any customer account.
+- Orders.acc_id is nullable. This allows guest orders to be stored without an account link. If an account is deleted, its past orders remain in the database with acc_id set to NULL.
+- Orders.cc_num is nullable and uses ON DELETE SET NULL. If a card is later removed or disassociated, order history remains intact.
+- OrderMenuItem.unit_pr stores the price per item at checkout time. This preserves historical accuracy even if national prices, location-specific overrides, or custom item component costs change later.
+- MenuItem.active is a soft-delete flag. Items can be hidden from normal customer browsing and ordering without being physically removed from the database. This allows historical orders to continue referencing the original menu item.
+- MenuItemContains is a self-referential table on MenuItem. contid is the container item and compid is the contained item. This supports nested custom items.
+- ON DELETE CASCADE is used where child records are meaningless without the parent, such as meal type rows without a menu item or order line items without an order.
+- ON DELETE SET NULL is used where the historical record still has value even if the referenced parent is removed or disassociated, such as orders tied to accounts, orders tied to credit cards, and order line items tied to menu items.
 
 ERROR HANDLING:
- Raw Oracle errors and stack traces are not shown directly to users.
- Unexpected SQL exceptions are logged to error.log with timestamp and stack trace, while a short friendly message is shown to the user.
- Known constraint violations, such as duplicate emails, duplicate custom item ingredients, and invalid IDs, show friendly messages and allow re-entry.
+- Raw Oracle errors and stack traces are not shown directly to users.
+- Unexpected SQL exceptions are logged to error.log with timestamp and stack trace, while a short friendly message is shown to the user.
+- Known constraint violations, such as duplicate emails, duplicate custom item ingredients, and invalid IDs, show friendly messages and allow re-entry.
 
 
 ADDITIONAL INTERFACES 
@@ -443,28 +437,21 @@ In a full production system, the following interfaces would also be included:
     set reorder thresholds. This could also support availability checks before
     allowing custom items to be created or ordered.
 
-  Operations / Admin Interface
-    Allows authorized staff to manage locations, deactivate menu items, update
-    the national menu, manage accounts, and view raw table data. This would
-    include role-based access control, which is outside the current project
-    scope.
-
-  Customer-Facing Kiosk Mode
-    A simplified order-only interface for in-store touchscreen use. It would
-    behave similarly to guest ordering but with a more restricted user flow.
-
-  Location Availability Interface
-    Allows management to restrict specific menu items to certain locations or
-    enable regional specials. The current schema assumes all active menu items
-    are available chain-wide.
+Full Admin / Role Management Interface
+    The current Management interface includes limited menu administration:
+    adding standard menu items, updating national prices, and deleting/restoring
+    menu items through the active flag. A full admin interface would go further
+    by managing locations, user roles, customer accounts, employee permissions,
+    and raw table data. It would also include role-based access control, which
+    is outside the current project scope.
 
 
 
 DATA SOURCES
 
 SQL schema, trigger, function, and sequence code written and reviewed by Brian Capellan-Santos.
- Java source code written and reviewed by Brian Capellan-Santos.
- Sample data, including location addresses, customer names, and menu items, was generated with AI assistance for database population purposes.
- README wording, debugging discussion, and some display/pagination guidance were developed with AI assistance and reviewed by Brian Capellan-Santos.
- Oracle JDBC driver: ojdbc11.jar obtained from the Oracle Maven repository.
- No code or data was received from or shared with other students.
+- Java source code written and reviewed by Brian Capellan-Santos.
+- Sample data, including location addresses, customer names, and menu items, was generated with AI assistance for database population purposes.
+- README wording, debugging discussion, and some display/pagination guidance were developed with AI assistance and reviewed by Brian Capellan-Santos.
+- Oracle JDBC driver: ojdbc11.jar obtained from the Oracle Maven repository.
+- No code or data was received from or shared with other students.
