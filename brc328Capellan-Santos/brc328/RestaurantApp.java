@@ -106,19 +106,24 @@ public class RestaurantApp {
     }
 
     // Reads a positive double, re-prompting on bad input.
-    // static double readDouble(String prompt) {
-    //     while (true) {
-    //         String input = readLine(prompt);
-    //         if (input == null) continue;
-    //         try {
-    //             double val = Double.parseDouble(input.trim());
-    //             if (val > 0) return val;
-    //             System.out.println("Please enter a positive number.");
-    //         } catch (NumberFormatException e) {
-    //             System.out.println("Please enter a valid number.");
-    //         }
-    //     }
-    // }
+    static double readPositivePrice(String prompt) {
+        while (true) {
+            String input = readLine(prompt);
+
+            if (input == null || input.trim().isEmpty()) {
+                return -1;
+            }
+
+            try {
+                double val = Double.parseDouble(input.trim());
+                if (val > 0) return val;
+
+                System.out.println("Please enter a price greater than $0.00.");
+            } catch (NumberFormatException e) {
+                System.out.println("Please enter a valid price.");
+            }
+        }
+    }
 
     // Prints a simple divider line
     static void divider() {
@@ -128,8 +133,8 @@ public class RestaurantApp {
     // Clears the terminal screen using ANSI escape codes
     static void clearScreen() {
         try {
-            // Pause for 1500 milliseconds (1.5 seconds)
-            Thread.sleep(1500);
+            // Pause for 700 milliseconds (0.7 second)
+            Thread.sleep(700);
         } catch (InterruptedException e) {
             // Restore interrupted state if the sleep is interrupted
             Thread.currentThread().interrupt();

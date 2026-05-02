@@ -1159,7 +1159,7 @@ public class CustomerUI {
         }
 
         // Show all other custom items
-        System.out.println("\n  All Custom Items:");
+        System.out.println("\n Other Custom Items:");
         String allSql =
             "SELECT m.itmid, m.name, a.f_name, a.l_name FROM MenuItem m " +
             "LEFT JOIN Account a ON m.cr_acc = a.acc_id " +

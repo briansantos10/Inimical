@@ -14,7 +14,8 @@ public class ManagementUI {
             System.out.println("  1. Sales Report by Location");
             System.out.println("  2. Top-Selling Menu Items");
             System.out.println("  3. Customer Activity Report");
-            System.out.println("  4. Back");
+            System.out.println("  4. Manage Menu Items");
+            System.out.println("  5. Back");
             System.out.println("=============================");
 
             String choice = RestaurantApp.readLine("Select: ");
@@ -31,6 +32,9 @@ public class ManagementUI {
                     customerActivity(conn);
                     break;
                 case "4":
+                    manageMenuItems(conn);
+                    break;
+                case "5":
                     return;
                 default:
                     System.out.println("Invalid option.");
@@ -257,7 +261,7 @@ public class ManagementUI {
         }
     }
 
-    // 3. Customer Activity Report
+    // Customer Activity Report
     static void customerActivity(Connection conn) throws SQLException {
         RestaurantApp.clearScreen();
         System.out.println("\n--- Customer Activity Report ---");
@@ -408,5 +412,355 @@ public class ManagementUI {
             System.out.println("  Invalid input -- showing all locations.");
         }
         return null;
+    }
+
+    // Manage menu items — add, soft-delete, or restore items
+    static void manageMenuItems(Connection conn) throws SQLException {
+        while (true) {
+            RestaurantApp.clearScreen();
+            System.out.println("\n--- Manage Menu Items ---");
+            System.out.println("  A. Add standard item");
+            System.out.println("  U. Update standard item price");
+            System.out.println("  D. Delete item");
+            System.out.println("  R. Restore deleted item");
+            System.out.println("  B. Back");
+
+            String choice = RestaurantApp.readLine("Select: ");
+            if (choice == null) continue;
+
+            switch (choice.trim().toUpperCase()) {
+                case "A":
+                    addStandardItem(conn);
+                    break;
+                case "U":
+                    updateStandardItemPrice(conn);
+                    break;
+                case "D":
+                    deleteMenuItem(conn);
+                    break;
+                case "R":
+                    restoreMenuItem(conn);
+                    break;
+                case "B":
+                    return;
+                default:
+                    System.out.println("Invalid option.");
+                    RestaurantApp.readLine("Press Enter to continue...");
+            }
+        }
+    }
+
+    // Add a new standard menu item
+    static void addStandardItem(Connection conn) throws SQLException {
+        RestaurantApp.clearScreen();
+        System.out.println("\n--- Add Standard Menu Item ---");
+
+        String name = RestaurantApp.readLine("Item name (or press Enter to cancel): ");
+        if (name == null || name.trim().isEmpty()) return;
+        name = name.trim();
+
+        String dupeSql = "SELECT itmid FROM MenuItem WHERE LOWER(name) = LOWER(?)";
+        try (PreparedStatement ps = conn.prepareStatement(dupeSql)) {
+            ps.setString(1, name);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                System.out.println("  An item with that name already exists.");
+                RestaurantApp.readLine("  Press Enter to continue...");
+                return;
+            }
+        }
+
+        double price = RestaurantApp.readPositivePrice(
+            "National price (or press Enter to cancel): $"
+        );
+        if (price < 0) return;
+
+        String insertSql =
+            "INSERT INTO MenuItem (itmid, name, itmtyp, nat_pr, cr_acc, crdate, active) " +
+            "VALUES (item_seq.NEXTVAL, ?, 'S', ?, NULL, NULL, 'Y')";
+
+        int newItemId = -1;
+
+        try (PreparedStatement ps = conn.prepareStatement(insertSql, new String[]{"itmid"})) {
+            ps.setString(1, name);
+            ps.setDouble(2, price);
+            ps.executeUpdate();
+
+            ResultSet keys = ps.getGeneratedKeys();
+            if (keys.next()) {
+                newItemId = keys.getInt(1);
+            } else {
+                String fetchSql = "SELECT item_seq.CURRVAL FROM dual";
+                try (PreparedStatement ps2 = conn.prepareStatement(fetchSql)) {
+                    ResultSet rs = ps2.executeQuery();
+                    if (rs.next()) newItemId = rs.getInt(1);
+                }
+            }
+        }
+
+        if (newItemId == -1) {
+            System.out.println("  Failed to create item.");
+            conn.rollback();
+            RestaurantApp.readLine("  Press Enter to continue...");
+            return;
+        }
+
+        RestaurantApp.clearScreen();
+        System.out.println("--- Add Ingredients: " + name + " ---");
+
+        int invCount = CustomerUI.addInventoryComponents(conn, newItemId);
+
+        if (invCount == 0) {
+            System.out.println("\n  Standard item must have at least one ingredient. Cancelling.");
+            conn.rollback();
+            RestaurantApp.readLine("  Press Enter to continue...");
+            return;
+        }
+
+        conn.commit();
+
+        System.out.println("\n  Standard item added successfully.");
+        System.out.println("  Item ID: " + newItemId);
+        System.out.println("  Name:    " + name);
+        System.out.println("  Price:   $" + String.format("%.2f", price));
+        RestaurantApp.readLine("\nPress Enter to continue...");
+    }
+
+    // Update national price for an active standard menu item
+    static void updateStandardItemPrice(Connection conn) throws SQLException {
+        RestaurantApp.clearScreen();
+        System.out.println("\n--- Update Standard Item Price ---");
+
+        List<Integer> itemIds = printActiveStandardItems(conn);
+        if (itemIds.isEmpty()) {
+            System.out.println("  No active standard items found.");
+            RestaurantApp.readLine("\nPress Enter to continue...");
+            return;
+        }
+
+        int itemId = RestaurantApp.readInt("\nEnter item ID to update (0 to cancel): ");
+        if (itemId == -1) return;
+
+        if (!itemIds.contains(itemId)) {
+            System.out.println("  Invalid item ID.");
+            RestaurantApp.readLine("  Press Enter to continue...");
+            return;
+        }
+
+        String itemName = getMenuItemName(conn, itemId);
+        double newPrice = RestaurantApp.readPositivePrice(
+            "New national price for \"" + itemName + "\" (or press Enter to cancel): $"
+        );
+
+        if (newPrice < 0) return;
+
+        String confirm = RestaurantApp.readLine(
+            "Update national price for \"" +
+                itemName +
+                "\" to $" +
+                String.format("%.2f", newPrice) +
+                "? Past orders will not change. (y/n): "
+        );
+
+        if (confirm == null || !confirm.trim().equalsIgnoreCase("y")) {
+            System.out.println("  Cancelled.");
+            RestaurantApp.readLine("  Press Enter to continue...");
+            return;
+        }
+
+        String updateSql =
+            "UPDATE MenuItem SET nat_pr = ? " + "WHERE itmid = ? AND itmtyp = 'S' AND active = 'Y'";
+
+        try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            ps.setDouble(1, newPrice);
+            ps.setInt(2, itemId);
+            ps.executeUpdate();
+        }
+
+        conn.commit();
+
+        System.out.println("  Price updated.");
+        RestaurantApp.readLine("  Press Enter to continue...");
+    }
+
+    // Helper — print active standard items and return their IDs
+    static List<Integer> printActiveStandardItems(Connection conn) throws SQLException {
+        String sql =
+            "SELECT itmid, name, nat_pr FROM MenuItem " +
+            "WHERE itmtyp = 'S' AND active = 'Y' " +
+            "ORDER BY itmid";
+
+        List<Integer> itemIds = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ResultSet rs = ps.executeQuery();
+
+            System.out.printf("  %-6s %-35s %s%n", "ID", "Name", "Current Price");
+            RestaurantApp.divider();
+
+            while (rs.next()) {
+                int id = rs.getInt("itmid");
+                itemIds.add(id);
+
+                System.out.printf(
+                    "  %-6d %-35s $%.2f%n",
+                    id,
+                    rs.getString("name"),
+                    rs.getDouble("nat_pr")
+                );
+            }
+        }
+
+        return itemIds;
+    }
+
+    // Delete menu item — implemented as soft delete
+    static void deleteMenuItem(Connection conn) throws SQLException {
+        RestaurantApp.clearScreen();
+        System.out.println("\n--- Delete Menu Item ---");
+        System.out.println(
+            "  Note: deleted items are hidden from ordering but kept for order history.\n"
+        );
+
+        String sql =
+            "SELECT itmid, name, itmtyp FROM MenuItem " +
+            "WHERE active = 'Y' ORDER BY itmtyp, itmid";
+
+        List<Integer> itemIds = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ResultSet rs = ps.executeQuery();
+
+            System.out.printf("  %-6s %-35s %-8s%n", "ID", "Name", "Type");
+            RestaurantApp.divider();
+
+            boolean any = false;
+            while (rs.next()) {
+                any = true;
+                int id = rs.getInt("itmid");
+                itemIds.add(id);
+
+                String type = rs.getString("itmtyp").equals("S") ? "Standard" : "Custom";
+
+                System.out.printf("  %-6d %-35s %-8s%n", id, rs.getString("name"), type);
+            }
+
+            if (!any) {
+                System.out.println("  No active menu items found.");
+                RestaurantApp.readLine("\nPress Enter to continue...");
+                return;
+            }
+        }
+
+        int itemId = RestaurantApp.readInt("\nEnter item ID to delete (0 to cancel): ");
+        if (itemId == -1) return;
+
+        if (!itemIds.contains(itemId)) {
+            System.out.println("  Invalid item ID.");
+            RestaurantApp.readLine("  Press Enter to continue...");
+            return;
+        }
+
+        String itemName = getMenuItemName(conn, itemId);
+
+        String confirm = RestaurantApp.readLine(
+            "Delete \"" + itemName + "\"? This hides it from ordering but keeps history. (y/n): "
+        );
+
+        if (confirm == null || !confirm.trim().equalsIgnoreCase("y")) {
+            System.out.println("  Cancelled.");
+            RestaurantApp.readLine("  Press Enter to continue...");
+            return;
+        }
+
+        String updateSql = "UPDATE MenuItem SET active = 'N' WHERE itmid = ?";
+        try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            ps.setInt(1, itemId);
+            ps.executeUpdate();
+        }
+
+        conn.commit();
+
+        System.out.println("  Item deleted.");
+        RestaurantApp.readLine("  Press Enter to continue...");
+    }
+
+    // Restore a soft-deleted menu item
+    static void restoreMenuItem(Connection conn) throws SQLException {
+        RestaurantApp.clearScreen();
+        System.out.println("\n--- Restore Deleted Menu Item ---");
+
+        String sql =
+            "SELECT itmid, name, itmtyp FROM MenuItem " +
+            "WHERE active = 'N' ORDER BY itmtyp, itmid";
+
+        List<Integer> itemIds = new ArrayList<>();
+
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ResultSet rs = ps.executeQuery();
+
+            System.out.printf("  %-6s %-35s %-8s%n", "ID", "Name", "Type");
+            RestaurantApp.divider();
+
+            boolean any = false;
+            while (rs.next()) {
+                any = true;
+                int id = rs.getInt("itmid");
+                itemIds.add(id);
+
+                String type = rs.getString("itmtyp").equals("S") ? "Standard" : "Custom";
+
+                System.out.printf("  %-6d %-35s %-8s%n", id, rs.getString("name"), type);
+            }
+
+            if (!any) {
+                System.out.println("  No deleted menu items found.");
+                RestaurantApp.readLine("\nPress Enter to continue...");
+                return;
+            }
+        }
+
+        int itemId = RestaurantApp.readInt("\nEnter item ID to restore (0 to cancel): ");
+        if (itemId == -1) return;
+
+        if (!itemIds.contains(itemId)) {
+            System.out.println("  Invalid item ID.");
+            RestaurantApp.readLine("  Press Enter to continue...");
+            return;
+        }
+
+        String itemName = getMenuItemName(conn, itemId);
+
+        String confirm = RestaurantApp.readLine(
+            "Restore \"" + itemName + "\" so it can be ordered again? (y/n): "
+        );
+
+        if (confirm == null || !confirm.trim().equalsIgnoreCase("y")) {
+            System.out.println("  Cancelled.");
+            RestaurantApp.readLine("  Press Enter to continue...");
+            return;
+        }
+
+        String updateSql = "UPDATE MenuItem SET active = 'Y' WHERE itmid = ?";
+        try (PreparedStatement ps = conn.prepareStatement(updateSql)) {
+            ps.setInt(1, itemId);
+            ps.executeUpdate();
+        }
+
+        conn.commit();
+
+        System.out.println("  Item restored.");
+        RestaurantApp.readLine("  Press Enter to continue...");
+    }
+
+    // Helper — get menu item name
+    static String getMenuItemName(Connection conn, int itemId) throws SQLException {
+        String sql = "SELECT name FROM MenuItem WHERE itmid = ?";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, itemId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) return rs.getString("name");
+        }
+        return "Item " + itemId;
     }
 }
