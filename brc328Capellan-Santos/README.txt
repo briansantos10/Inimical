@@ -172,7 +172,7 @@ The cart below:
 --- Your Cart ---
   #    ID     Item                                Qty        Total
 -----------------------------
-  1    2001   Beast Burger                 1         $20.99
+  1    2001   Beast Burger                 	   1         $20.99
 ….. 
 
 Shows each item with its line total and a running subtotal before tax. 
@@ -303,6 +303,8 @@ Items that have never been ordered are excluded because ranking them is not mean
 4. Manage Menu Items: Allows management to add standard menu items, update national prices for active standard items, delete menu items, and restore deleted menu items.
 
 When adding a standard item, management enters the item name, national price, and at least one inventory ingredient. If no ingredients are added, the item creation is rolled back. This ensures that newly added standard items have both a listed price and an ingredient breakdown.
+
+Meal type assignment was left out of the interface for simplicity. These items still appear in "View All Items" but will not appear under meal-type filters unless meal types are inserted manually in the database.
 
 Updating a national price affects future menu browsing and future orders only. Historical order totals and revenue reports remain unchanged because completed orders use the stored OrderMenuItem.unit_pr value.
 
@@ -451,7 +453,7 @@ DATA SOURCES
 
 SQL schema, trigger, function, and sequence code written and reviewed by Brian Capellan-Santos.
 - Java source code written and reviewed by Brian Capellan-Santos.
-- Sample data, including location addresses, customer names, and menu items, was generated with AI assistance for database population purposes.
+- Sample data (in data-generation-code.sql), including location addresses, customer names, and menu items, was generated with AI assistance for database population purposes.
 - README wording, debugging discussion, and some display/pagination guidance were developed with AI assistance and reviewed by Brian Capellan-Santos.
 - Oracle JDBC driver: ojdbc11.jar obtained from the Oracle Maven repository.
 - No code or data was received from or shared with other students.

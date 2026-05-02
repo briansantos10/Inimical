@@ -94,9 +94,7 @@ public class LocationManagerUI {
         }
     }
 
-    // ----------------------------------------------------------------
     // 1. View Orders at this location — paginated, with drill-down
-    // ----------------------------------------------------------------
     static void viewOrders(Connection conn, int locId) throws SQLException {
         String sql =
             "SELECT o.ord_id, o.placed, o.ordtyp, " +
@@ -263,16 +261,14 @@ public class LocationManagerUI {
         RestaurantApp.divider();
         System.out.printf(
             "  %-48s %10s%n",
-            "Subtotal (excl. tax):",
+            "Subtotal (before tax):",
             String.format("$%.2f", subtotal)
         );
 
         RestaurantApp.readLine("\nPress Enter to go back...");
     }
 
-    // ----------------------------------------------------------------
     // 2. Manage Price Overrides
-    // ----------------------------------------------------------------
     static void managePriceOverrides(Connection conn, int locId) throws SQLException {
         while (true) {
             RestaurantApp.clearScreen();
@@ -342,9 +338,7 @@ public class LocationManagerUI {
         return rows;
     }
 
-    // ----------------------------------------------------------------
     // Add (or update) a price override
-    // ----------------------------------------------------------------
     static void addOverride(Connection conn, int locId) throws SQLException {
         RestaurantApp.clearScreen();
         System.out.println("\n--- Add / Update Price Override ---");
@@ -467,9 +461,7 @@ public class LocationManagerUI {
         RestaurantApp.readLine("  Press Enter to continue...");
     }
 
-    // ----------------------------------------------------------------
     // Remove a price override
-    // ----------------------------------------------------------------
     static void removeOverride(Connection conn, int locId) throws SQLException {
         RestaurantApp.clearScreen();
         System.out.println("\n--- Remove Price Override ---");
@@ -525,9 +517,7 @@ public class LocationManagerUI {
         RestaurantApp.readLine("  Press Enter to continue...");
     }
 
-    // ----------------------------------------------------------------
     // Helper — "City, ST" for a location ID
-    // ----------------------------------------------------------------
     static String getLocName(Connection conn, int locId) throws SQLException {
         String sql = "SELECT city, state FROM Location WHERE loc_id = ?";
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
